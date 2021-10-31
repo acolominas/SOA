@@ -120,14 +120,14 @@ ENTRY(writeMsr)
 ENTRY(task_switch)
 	push %ebp
 	movl %esp, %ebp;
-	pushl %edi
 	pushl %esi
-	pushl %edx
+	pushl %edi
+	pushl %ebx
 	pushl 8(%ebp) // push de la variable new
 	call inner_task_switch
-	popl %edx
-	popl %esi
+	popl %ebx
 	popl %edi
+	popl %esi
 	movl %ebp, %esp
 	popl %ebp
 	ret
@@ -140,3 +140,10 @@ ENTRY(writeESP)
 	movl 4(%esp),%esp
 	popl %ebp
   ret
+
+ENTRY(switch_stack)
+	mov 4(%esp), %eax
+	mov %ebp, (%eax)
+	mov 8(%esp), %esp
+	popl %ebp
+	ret

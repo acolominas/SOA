@@ -21,6 +21,7 @@
 
 
 extern int zeos_ticks;
+struct list_head free_queue;
 
 int check_fd(int fd, int permissions)
 {
@@ -45,6 +46,20 @@ int sys_getpid()
 int sys_fork()
 {
   int PID=-1;
+  //1.Get a free task_struct for the process. If there is no space for a new process, an error will be returned.
+  if(list_empty(&free_queue)) return -ENOMEM;
+  struct list_head *l = list_first(&free_queue);
+  struct task_struct *hijo = list_head_to_task_struct(l);
+  union task_union *uhijo = (union task_union*)hijo;
+  list_del(l);
+  //2.copy the parent’s task_union to the child.
+  copy_data(current(),hijo,sizeof(union task_union));
+  //3.Initialize field dir_pages_baseAddr with a new directory to store the process address space using the allocate_DIR routine.
+  allocate_DIR(&hijo);
+
+
+
+
 
   // creates the child process
 

@@ -109,10 +109,7 @@ struct task_struct* current()
 }
 
 struct task_struct *list_head_to_task_struct(struct list_head *l) {
-	//unsigned int value = l;
-
   return (struct task_struct*)((unsigned long)l&0xfffff000);
-
 }
 
 void inner_task_switch(union task_union *new){
