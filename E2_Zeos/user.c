@@ -17,9 +17,12 @@ int __attribute__ ((__section__(".text.main")))
   char buff[256];
 
 	//time = gettime();
-	//itoa(time,buff);
+	//itoa(time,budff);
 	//write(1,buff,strlen(buff));
-  pid = getpid();
+  //pid = getpid();
+  //itoa(pid,buff);
+  //write(1,buff,strlen(buff));
+  pid = fork();
   itoa(pid,buff);
   write(1,buff,strlen(buff));
   while(1) { }

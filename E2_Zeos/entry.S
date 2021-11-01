@@ -125,6 +125,7 @@ ENTRY(task_switch)
 	pushl %ebx
 	pushl 8(%ebp) // push de la variable new
 	call inner_task_switch
+  addl $4,%esp
 	popl %ebx
 	popl %edi
 	popl %esi

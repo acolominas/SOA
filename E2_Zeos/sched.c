@@ -50,9 +50,12 @@ void cpu_idle(void)
 {
 	__asm__ __volatile__("sti": : :"memory");
 
+  int pid = current()->PID;
+  char buff[1];
+  itoa(pid,buff);
+  printc_xy (0,0,buff[0]);
 	while(1)
 	{
-	//printc_xy (0,0,'a');
   ;
 	}
 }
@@ -81,8 +84,8 @@ void init_task1(void)
 	allocate_DIR(init_task);
 	set_user_pages(init_task);
 	union task_union *initu = (union task_union*)init_task;
-	tss.esp0 = (unsigned long)&initu->stack;
-	writeMsr(0x175,(unsigned long)&initu->stack);
+	tss.esp0 = (unsigned long)&initu->stack[KERNEL_STACK_SIZE];
+	writeMsr(0x175,(unsigned long)&initu->stack[KERNEL_STACK_SIZE]);
 	set_cr3(init_task->dir_pages_baseAddr);
 }
 

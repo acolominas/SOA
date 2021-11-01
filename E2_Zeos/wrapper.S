@@ -94,7 +94,7 @@ SYSENTER_GETPID:
       popl %edx;
       popl %ecx;
       popl %ebp;
-      ret;
+			ret;
 
 //int fork();
 ENTRY(fork)
@@ -119,7 +119,8 @@ SYSENTER_FORK:
 	popl %edx; //quitar de la pila @SYSTENTER_FORK
 	popl %edx;
 	popl %ecx;
-	popl %ebx;
+	popl %ebp;
+	ret;
 
 iffork:  cmpl $0, %eax;        	//8.Process the result
 	jge elsefork;
