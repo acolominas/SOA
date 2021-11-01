@@ -75,7 +75,7 @@ int sys_fork()
   int page,page_log;
   int frame;
   for (page=0; page<NUM_PAG_DATA; ++page) {
-    int frame = alloc_frame();
+    frame = alloc_frame();
     if (frame == -1) {
       return -ENOMEM;
     }
@@ -133,7 +133,7 @@ int sys_fork()
   //stack[KERNEL-4] = CTX HW
   uhijo->stack[KERNEL_STACK_SIZE-19] = 0;
   uhijo->stack[KERNEL_STACK_SIZE-18] = (unsigned long)&ret_from_fork;
-  hijo->kernel_esp = (unsigned long *)&uhijo->stack[KERNEL_STACK_SIZE-19];
+  hijo->kernel_esp = (unsigned long)&uhijo->stack[KERNEL_STACK_SIZE-19];
 
   //Encolamos el hijo a la cola de ready
   list_add(&(uhijo->task.lista), &ready_queue);
