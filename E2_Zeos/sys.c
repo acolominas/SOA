@@ -69,60 +69,74 @@ int sys_fork()
   copy_data(current(),hijo,sizeof(union task_union));
   //3.Initialize field dir_pages_baseAddr with a new directory to store the process address space using the allocate_DIR routine.
   allocate_DIR(&hijo);
-  //Obtenemos tabla de paginas para el hijo
-  page_table_entry *TP_hijo = get_PT(&uhijo->task);
-  int i,page_log;
 
-  //Paginas para data+stack
-
-  for (page_log=0; page_log<NUM_PAG_DATA; page_log++) {
-    int page_id_fis = alloc_frame();
-    if (page_id_fis == -1) {
-      //LIBERAR RECURSOS
-      for (i=0; i<page_log; i++)
-      {
-        free_frame(get_frame(TP_hijo, PAG_LOG_INIT_DATA+i));
-        del_ss_pag(TP_hijo, PAG_LOG_INIT_DATA+i);
-      }
-      list_add(hijo, &free_queue);
+  //Obtenemos paginas para data+stack, sino hay mas, error.
+  int pages_data[NUM_PAG_DATA];
+  int page,page_log;
+  int frame;
+  for (page=0; page<NUM_PAG_DATA; ++page) {
+    int frame = alloc_frame();
+    if (frame == -1) {
       return -ENOMEM;
     }
     else {
-      set_ss_pag(TP_hijo, PAG_LOG_INIT_DATA+page_log,page_id_fis);
+      pages_data[page] = frame;
     }
   }
-  //Obtenemos tabla de paginas del padre
+
+  //Obtenemos tabla de paginas para el hijo y padre
+  page_table_entry *TP_hijo = get_PT(&uhijo->task);
   page_table_entry *TP_padre = get_PT(current());
-  //Las paginas del Kernel del hijo apuntan a las del padre
+
+  //Añadimos a la TP del hijo las nuevas paginas
+  for (page = 0; page < NUM_PAG_DATA; ++page) {
+		set_ss_pag(TP_hijo,PAG_LOG_INIT_DATA+page,pages_data[page]);
+	}
+
+  //Las paginas del Kernel del hijo apuntan a las del padre (Es compartido)
   for (page_log=0; page_log<NUM_PAG_KERNEL; page_log++){
     set_ss_pag(TP_hijo,page_log, get_frame(TP_padre, page_log));
   }
-  //Las paginas del codigo del hijo apuntan a las del padre
+  //Las paginas del codigo del hijo apuntan a las del padre (Es compartido)
   for (page_log=0; page_log<NUM_PAG_CODE; page_log++){
     set_ss_pag(TP_padre, PAG_LOG_INIT_CODE+page_log, get_frame(TP_hijo, PAG_LOG_INIT_CODE+page_log));
   }
 
-  // Copy parent's DATA to child. We will use TOTAL_PAGES-1 as a temp logical page to map to
-
-  for (page_log=NUM_PAG_KERNEL+NUM_PAG_CODE; page_log<NUM_PAG_KERNEL+NUM_PAG_CODE+NUM_PAG_DATA; page_log++)
-  {
-    //Map one child page to parent's address space.
-    int page_log_hijo = get_frame(TP_hijo,page_log);
+  //Copiamos el contenido de las paginas de DATA del padre a las paginas del hijo.
+  int START_DATA = NUM_PAG_KERNEL+NUM_PAG_CODE; //DONDE EMPIEZAN LAS PAGINAS DE DATA
+  int dir_src,dir_dest;
+  int page_log_hijo;
+  for (page_log=START_DATA; page_log<START_DATA+NUM_PAG_DATA; page_log++){
+    //Para poder acceder, añadimos la pagina a la TP del padre
+    page_log_hijo = get_frame(TP_hijo,page_log);
     set_ss_pag(TP_padre, page_log+NUM_PAG_DATA,page_log_hijo);
-    copy_data((void*)(page_log<<12), (void*)((page_log+NUM_PAG_DATA)<<12), PAGE_SIZE);
+
+    dir_src = page_log*PAGE_SIZE;
+		dir_dest = (page_log+NUM_PAG_DATA)*PAGE_SIZE;
+		copy_data((void*)(dir_src), (void*)(dir_dest), PAGE_SIZE); //direccion logica
+
+    //Eliminamos las pagina de la TP del padre (ahora solo esta en la TP del hijo)
     del_ss_pag(TP_padre, page_log+NUM_PAG_DATA);
   }
 
   //flush TLB
   set_cr3(get_DIR(current()));
+
+  //Asignamos PID al hijo
   uhijo->task.PID = newPID();
 
-  //16 pos to contx hw & sw, 17 -> @handler,18->@ret_from_fork,19->0 to ebp task_switch
+  //Preparamos la stack del hijo
+  //stack[KERNEL-19] = 0 //pop %ebp task_switch
+  //stack[KERNEL-18] = @ret_from_fork
+  //stack[KERNEL-17] = @ret_handler
+  //stack[KERNEL-16] = CTX SW
+  //stack[KERNEL-4] = CTX HW
   uhijo->stack[KERNEL_STACK_SIZE-19] = 0;
   uhijo->stack[KERNEL_STACK_SIZE-18] = (unsigned long)&ret_from_fork;
   hijo->kernel_esp = (unsigned long *)&uhijo->stack[KERNEL_STACK_SIZE-19];
 
-  list_add_tail(&(uhijo->task.lista), &ready_queue);
+  //Encolamos el hijo a la cola de ready
+  list_add(&(uhijo->task.lista), &ready_queue);
 
   return uhijo->task.PID;
 }
