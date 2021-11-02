@@ -23,7 +23,11 @@ int __attribute__ ((__section__(".text.main")))
   //itoa(pid,buff);
   //write(1,buff,strlen(buff));
   pid = fork();
-  itoa(pid,buff);
-  write(1,buff,strlen(buff));
+  if(pid == 0) {
+    write(1,"Soy el hijo",strlen("Soy el hijo"));
+  }
+  else {
+    write(1,"Soy el padre",strlen("Soy el padre"));
+  }
   while(1) { }
 }

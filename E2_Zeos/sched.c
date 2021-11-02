@@ -21,7 +21,6 @@ struct list_head free_queue;
 struct list_head ready_queue;
 struct task_struct *idle_task;
 
-
 /* get_DIR - Returns the Page Directory address for task 't' */
 page_table_entry * get_DIR (struct task_struct *t)
 {
@@ -66,6 +65,7 @@ void init_idle (void)
 	list_del(l);
 	idle_task = list_head_to_task_struct(l);
 	idle_task->PID = 0;
+  idle_task->quantum = GLOBAL_QUANTUM;
 
 	allocate_DIR(idle_task);
 
@@ -81,6 +81,8 @@ void init_task1(void)
 	list_del(l);
 	struct task_struct *init_task = list_head_to_task_struct(l);
 	init_task->PID = 1;
+  init_task->quantum = GLOBAL_QUANTUM;
+  num_ticks = GLOBAL_QUANTUM;
 	allocate_DIR(init_task);
 	set_user_pages(init_task);
 	union task_union *initu = (union task_union*)init_task;
@@ -126,4 +128,44 @@ void inner_task_switch(union task_union *new){
   //4.Change the current system stack by setting ESP register to point to the stored value in the new PCB.
   //5.Restore the EBP register from the stack.
   writeESP(new->task.kernel_esp);
+}
+
+void sched_next_rr() {
+  struct task_struct *next;
+  if(list_empty(&ready_queue)) {
+    next = idle_task;
+  }else {
+    struct list_head *l = list_first(&ready_queue);
+    list_del(l);
+    next = list_head_to_task_struct(l);
+  }
+  union task_union *unext = (union task_union*)next;
+
+  task_switch(unext);
+  num_ticks = get_quantum(next);
+}
+
+int needs_sched_rr(){
+  if (num_ticks == 0) return 1;
+  else return 0;
+  //return (num_ticks == 0);
+}
+
+void update_sched_data_rr() {
+  --num_ticks;
+}
+
+int get_quantum (struct task_struct *t) {
+  return t->quantum;
+}
+
+void set_quantum (struct task_struct *t, int new_quantum) {
+  t->quantum = new_quantum;
+}
+
+void schedule() {
+  update_sched_data_rr();
+  if (needs_sched_rr() == 1) {
+    sched_next_rr();
+  }
 }
