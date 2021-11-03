@@ -148,7 +148,6 @@ void sched_next_rr() {
 int needs_sched_rr(){
   if (num_ticks == 0) return 1;
   else return 0;
-  //return (num_ticks == 0);
 }
 
 void update_sched_data_rr() {

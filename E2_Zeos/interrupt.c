@@ -116,10 +116,16 @@ void clock_routine()
 {
   zeos_show_clock();
   zeos_ticks++;
-  struct list_head *l = list_first(&ready_queue);
-  struct task_struct *hijo = list_head_to_task_struct(l);
-  //if(zeos_ticks == 500) task_switch((union task_union*)idle_task);
-  //if(zeos_ticks == 50) task_switch((union task_union*)hijo);
+
+  /*
+  if(zeos_ticks == 100) task_switch((union task_union*)idle_task);
+
+  if(zeos_ticks == 150) {
+    struct list_head *l = list_first(&ready_queue);
+    struct task_struct *hijo = list_head_to_task_struct(l);
+    task_switch((union task_union*)hijo);
+  }
+  */
   schedule();
 
 }

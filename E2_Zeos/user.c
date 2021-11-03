@@ -14,20 +14,28 @@ int __attribute__ ((__section__(".text.main")))
   //write(1,"hola",-1);
   //perror();
   //int time = 0;
-  char buff[256];
+  char buff[4];
 
 	//time = gettime();
 	//itoa(time,budff);
 	//write(1,buff,strlen(buff));
-  //pid = getpid();
+  //
   //itoa(pid,buff);
   //write(1,buff,strlen(buff));
   pid = fork();
   if(pid == 0) {
-    write(1,"Soy el hijo",strlen("Soy el hijo"));
+    char buff[] = "Soy el hijo y mi pid es:";
+    write(1,buff,strlen(buff));
+    int pid = getpid();
+    itoa(pid,buff);
+    write(1,buff,strlen(buff));
   }
   else {
-    write(1,"Soy el padre",strlen("Soy el padre"));
+    char buff[] = "Soy el padre y mi pid es:";    
+    write(1,buff,strlen(buff));
+    int my_pid = getpid();
+    itoa(my_pid,buff);
+    write(1,buff,strlen(buff));
   }
   while(1) { }
 }

@@ -68,7 +68,7 @@ int sys_fork()
   //2.copy the parent’s task_union to the child.
   copy_data(current(),hijo,sizeof(union task_union));
   //3.Initialize field dir_pages_baseAddr with a new directory to store the process address space using the allocate_DIR routine.
-  allocate_DIR(&hijo);
+  allocate_DIR(hijo);
 
   //Obtenemos paginas fisicas para data+stack, sino hay mas, error.
   int pages_data[NUM_PAG_DATA];
@@ -128,11 +128,13 @@ int sys_fork()
     del_ss_pag(TP_padre,pos+page_log);
     ++i;
   }
-  //flush TLB
+  //Every time Page Table is modified, it is necessary to invalidate TLB (TLB Flush)
+  //TLB entries can become incorrect
   set_cr3(get_DIR(current()));
 
   //Asignamos PID al hijo
-  uhijo->task.PID = newPID();
+  hijo->PID = newPID();
+
 
   //Preparamos la stack del hijo
   //stack[KERNEL_STACK_SIZE-19] = 0 //pop %ebp task_switch
@@ -147,7 +149,7 @@ int sys_fork()
   //Encolamos el hijo a la cola de ready
   list_add(&(uhijo->task.lista), &ready_queue);
 
-  return uhijo->task.PID;
+  return hijo->PID;
 }
 
 void sys_exit()
