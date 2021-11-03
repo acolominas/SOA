@@ -87,12 +87,6 @@ int sys_fork()
   page_table_entry *TP_hijo = get_PT(hijo);
   page_table_entry *TP_padre = get_PT(current());
 
-  //Añadimos a la TP del hijo las nuevas paginas
-  for (page_log = 0; page_log < NUM_PAG_DATA; page_log++) {
-    //set_ss_pag(Tabla_pagina,id_pagina_logica,id_pagina_fisica)
-		set_ss_pag(TP_hijo,PAG_LOG_INIT_DATA+page_log,pages_data[page_log]);
-	}
-
   //Las paginas del Kernel del hijo apuntan a las del padre (Es compartido)
   //Las paginas logicas del kernel son las primeras (empiezan en 0)
   for (page_log=0; page_log<NUM_PAG_KERNEL; page_log++){
@@ -104,6 +98,12 @@ int sys_fork()
     page_ph = get_frame(TP_padre, PAG_LOG_INIT_CODE+page_log);
     set_ss_pag(TP_hijo,PAG_LOG_INIT_CODE+page_log,page_ph);
   }
+
+  //Añadimos a la TP del hijo las nuevas paginas para DATA
+  for (page_log = 0; page_log < NUM_PAG_DATA; page_log++) {
+    //set_ss_pag(Tabla_pagina,id_pagina_logica,id_pagina_fisica)
+		set_ss_pag(TP_hijo,PAG_LOG_INIT_DATA+page_log,pages_data[page_log]);
+	}
 
   //Copiamos el contenido de las paginas de DATA+STACK del padre a las paginas del hijo.
   int dir_src,dir_dest;
