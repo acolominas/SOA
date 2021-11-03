@@ -130,3 +130,30 @@ iffork:  cmpl $0, %eax;        	//8.Process the result
 elsefork:
 	popl %ebp
 	ret;								    //9.Return
+
+
+	//void exit(void);
+	ENTRY(exit)
+
+	pushl %ebp;
+	movl %esp, %ebp;
+
+	movl $1, %eax; 					//syscall_table #1 -> exit
+
+	pushl %ecx;
+	pushl %edx;
+
+	pushl $SYSENTER_EXIT
+
+	push %ebp
+	movl %esp, %ebp
+
+	sysenter;
+
+	SYSENTER_EXIT:
+	      popl %ebp;
+	      popl %edx;
+	      popl %edx;
+	      popl %ecx;
+	      popl %ebp;
+				ret;

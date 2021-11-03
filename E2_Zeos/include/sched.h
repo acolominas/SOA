@@ -35,7 +35,7 @@ extern union task_union task[NR_TASKS]; /* Vector de tasques */
 
 #define INITIAL_ESP       	KERNEL_ESP(&task[1])
 
-#define GLOBAL_QUANTUM 500
+#define GLOBAL_QUANTUM 100
 
 int num_ticks;
 

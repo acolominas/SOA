@@ -127,5 +127,4 @@ void clock_routine()
   }
   */
   schedule();
-
 }

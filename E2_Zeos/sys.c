@@ -147,13 +147,25 @@ int sys_fork()
   hijo->kernel_esp = (unsigned long)&uhijo->stack[KERNEL_STACK_SIZE-19];
 
   //Encolamos el hijo a la cola de ready
-  list_add(&(uhijo->task.lista), &ready_queue);
+  list_add_tail(&(uhijo->task.lista), &ready_queue);
 
   return hijo->PID;
 }
 
 void sys_exit()
 {
+  struct task_struct *current_task = current();
+  page_table_entry *TP_current = get_PT(current_task);
+  //Liberamos las paginas del proceso. Las compartidas no.
+  int page_log;
+  for (page_log = 0; page_log < NUM_PAG_DATA; page_log++) {
+		free_frame(PAG_LOG_INIT_DATA+page_log);
+    del_ss_pag(TP_current,PAG_LOG_INIT_DATA+page_log);
+	}
+  //Liberamos PCB
+  list_add_tail(&(current_task->lista), &free_queue);
+  //Forzamos un nuevo task_switch
+  sched_next_rr();
 }
 
 int sys_write(int fd, char * buffer, int size) {

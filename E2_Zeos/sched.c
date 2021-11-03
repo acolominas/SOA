@@ -49,10 +49,7 @@ void cpu_idle(void)
 {
 	__asm__ __volatile__("sti": : :"memory");
 
-  int pid = current()->PID;
-  char buff[1];
-  itoa(pid,buff);
-  printc_xy (0,0,buff[0]);
+  printk("\nSoy IDLE");
 	while(1)
 	{
   ;
@@ -140,14 +137,14 @@ void sched_next_rr() {
     next = list_head_to_task_struct(l);
   }
   union task_union *unext = (union task_union*)next;
-
   task_switch(unext);
   num_ticks = get_quantum(next);
 }
 
 int needs_sched_rr(){
-  if (num_ticks == 0) return 1;
-  else return 0;
+  if ((num_ticks == 0)&&(!list_empty(&ready_queue))) return 1;
+  if (num_ticks == 0) num_ticks = get_quantum(current());
+  return 0;
 }
 
 void update_sched_data_rr() {
@@ -162,9 +159,15 @@ void set_quantum (struct task_struct *t, int new_quantum) {
   t->quantum = new_quantum;
 }
 
+void update_process_state_rr(struct task_struct *t, struct list_head *dest) {
+  list_add_tail(&(t->lista),dest);
+}
+
 void schedule() {
   update_sched_data_rr();
   if (needs_sched_rr() == 1) {
+    update_process_state_rr(current(),&ready_queue);
+    printk("\nTask switch!");
     sched_next_rr();
   }
 }
