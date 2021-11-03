@@ -70,55 +70,64 @@ int sys_fork()
   //3.Initialize field dir_pages_baseAddr with a new directory to store the process address space using the allocate_DIR routine.
   allocate_DIR(&hijo);
 
-  //Obtenemos paginas para data+stack, sino hay mas, error.
+  //Obtenemos paginas fisicas para data+stack, sino hay mas, error.
   int pages_data[NUM_PAG_DATA];
-  int page,page_log;
-  int frame;
-  for (page=0; page<NUM_PAG_DATA; ++page) {
-    frame = alloc_frame();
-    if (frame == -1) {
+  int page_log,page_ph;
+  for (page_log=0; page_log<NUM_PAG_DATA; page_log++) {
+    page_ph = alloc_frame();
+    if (page_ph == -1) {
       return -ENOMEM;
     }
     else {
-      pages_data[page] = frame;
+      pages_data[page_log] = page_ph;
     }
   }
 
   //Obtenemos tabla de paginas para el hijo y padre
-  page_table_entry *TP_hijo = get_PT(&uhijo->task);
+  page_table_entry *TP_hijo = get_PT(hijo);
   page_table_entry *TP_padre = get_PT(current());
 
   //Añadimos a la TP del hijo las nuevas paginas
-  for (page = 0; page < NUM_PAG_DATA; ++page) {
-		set_ss_pag(TP_hijo,PAG_LOG_INIT_DATA+page,pages_data[page]);
+  for (page_log = 0; page_log < NUM_PAG_DATA; page_log++) {
+    //set_ss_pag(Tabla_pagina,id_pagina_logica,id_pagina_fisica)
+		set_ss_pag(TP_hijo,PAG_LOG_INIT_DATA+page_log,pages_data[page_log]);
 	}
 
   //Las paginas del Kernel del hijo apuntan a las del padre (Es compartido)
+  //Las paginas logicas del kernel son las primeras (empiezan en 0)
   for (page_log=0; page_log<NUM_PAG_KERNEL; page_log++){
-    set_ss_pag(TP_hijo,page_log, get_frame(TP_padre, page_log));
+    page_ph = get_frame(TP_padre, page_log);
+    set_ss_pag(TP_hijo,page_log,page_ph);
   }
   //Las paginas del codigo del hijo apuntan a las del padre (Es compartido)
   for (page_log=0; page_log<NUM_PAG_CODE; page_log++){
-    set_ss_pag(TP_padre, PAG_LOG_INIT_CODE+page_log, get_frame(TP_hijo, PAG_LOG_INIT_CODE+page_log));
+    page_ph = get_frame(TP_padre, PAG_LOG_INIT_CODE+page_log);
+    set_ss_pag(TP_hijo,PAG_LOG_INIT_CODE+page_log,page_ph);
   }
 
-  //Copiamos el contenido de las paginas de DATA del padre a las paginas del hijo.
-  int START_DATA = NUM_PAG_KERNEL+NUM_PAG_CODE; //DONDE EMPIEZAN LAS PAGINAS DE DATA
+  //Copiamos el contenido de las paginas de DATA+STACK del padre a las paginas del hijo.
   int dir_src,dir_dest;
-  int page_log_hijo;
-  for (page_log=START_DATA; page_log<START_DATA+NUM_PAG_DATA; page_log++){
+  int page_ph_hijo;
+  int i = 0;
+  //LAS PAGINAS FISICAS DEL HIJO LAS PONEMOS AL FINAL DE LA TP DEL PADRE
+  int pos = PAG_LOG_INIT_DATA+NUM_PAG_DATA;
+  for (page_log=0; page_log<NUM_PAG_DATA; page_log++){
     //Para poder acceder, añadimos la pagina a la TP del padre
-    page_log_hijo = get_frame(TP_hijo,page_log);
-    set_ss_pag(TP_padre, page_log+NUM_PAG_DATA,page_log_hijo);
+    //no podemos acceder al espacio de direeciones del hijo desde el padre
+    //Solucion: Añadir las paginas del hijo al espacio de direcciones del padre.
+    //          Se añaden al final de la TP del Padre
+    // TP [KERNEL | CODE | DATA | DATA_HIJO]
+    page_ph_hijo = pages_data[i];
+    set_ss_pag(TP_padre,pos+page_log,page_ph_hijo);
 
-    dir_src = page_log*PAGE_SIZE;
-		dir_dest = (page_log+NUM_PAG_DATA)*PAGE_SIZE;
-		copy_data((void*)(dir_src), (void*)(dir_dest), PAGE_SIZE); //direccion logica
+    dir_src = (PAG_LOG_INIT_DATA+page_log)*PAGE_SIZE;
+    dir_dest = (pos+page_log)*PAGE_SIZE;
+    copy_data((void*)(dir_src), (void*)(dir_dest), PAGE_SIZE); //direccion logica
 
     //Eliminamos las pagina de la TP del padre (ahora solo esta en la TP del hijo)
-    del_ss_pag(TP_padre, page_log+NUM_PAG_DATA);
+    del_ss_pag(TP_padre,pos+page_log);
+    ++i;
   }
-
   //flush TLB
   set_cr3(get_DIR(current()));
 
@@ -126,11 +135,11 @@ int sys_fork()
   uhijo->task.PID = newPID();
 
   //Preparamos la stack del hijo
-  //stack[KERNEL-19] = 0 //pop %ebp task_switch
-  //stack[KERNEL-18] = @ret_from_fork
-  //stack[KERNEL-17] = @ret_handler
-  //stack[KERNEL-16] = CTX SW
-  //stack[KERNEL-4] = CTX HW
+  //stack[KERNEL_STACK_SIZE-19] = 0 //pop %ebp task_switch
+  //stack[KERNEL_STACK_SIZE-18] = @ret_from_fork
+  //stack[KERNEL_STACK_SIZE-17] = @ret_handler
+  //stack[KERNEL_STACK_SIZE-16] = CTX SW
+  //stack[KERNEL_STACK_SIZE-4] = CTX HW
   uhijo->stack[KERNEL_STACK_SIZE-19] = 0;
   uhijo->stack[KERNEL_STACK_SIZE-18] = (unsigned long)&ret_from_fork;
   hijo->kernel_esp = (unsigned long)&uhijo->stack[KERNEL_STACK_SIZE-19];

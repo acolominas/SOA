@@ -5,9 +5,11 @@
 
 #define TOTAL_PAGES 1024
 #define NUM_PAG_KERNEL 256
+
 #define PAG_LOG_INIT_CODE (L_USER_START>>12)
 #define FRAME_INIT_CODE (PH_USER_START>>12)
 #define NUM_PAG_CODE 8
+
 #define PAG_LOG_INIT_DATA (PAG_LOG_INIT_CODE+NUM_PAG_CODE)
 #define NUM_PAG_DATA 20
 #define PAGE_SIZE 0x1000
@@ -26,4 +28,3 @@
 #define PH_PAGE(x) (x>>12)
 
 #endif
-
