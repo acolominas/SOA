@@ -108,7 +108,6 @@ int sys_fork()
   //Copiamos el contenido de las paginas de DATA+STACK del padre a las paginas del hijo.
   int dir_src,dir_dest;
   int page_ph_hijo;
-  int i = 0;
   //LAS PAGINAS FISICAS DEL HIJO LAS PONEMOS AL FINAL DE LA TP DEL PADRE
   int pos = PAG_LOG_INIT_DATA+NUM_PAG_DATA;
   for (page_log=0; page_log<NUM_PAG_DATA; page_log++){
@@ -116,8 +115,8 @@ int sys_fork()
     //no podemos acceder al espacio de direeciones del hijo desde el padre
     //Solucion: Añadir las paginas del hijo al espacio de direcciones del padre.
     //          Se añaden al final de la TP del Padre
-    // TP [KERNEL | CODE | DATA | DATA_HIJO]
-    page_ph_hijo = pages_data[i];
+    // TP_PADRE: [PAG_KERNEL | PAGE_CODE | PAG_DATA_STACK | PAG_DATA_STACK_HIJO]
+    page_ph_hijo = pages_data[page_log];
     set_ss_pag(TP_padre,pos+page_log,page_ph_hijo);
 
     dir_src = (PAG_LOG_INIT_DATA+page_log)*PAGE_SIZE;
@@ -126,7 +125,6 @@ int sys_fork()
 
     //Eliminamos las pagina de la TP del padre (ahora solo esta en la TP del hijo)
     del_ss_pag(TP_padre,pos+page_log);
-    ++i;
   }
   //Every time Page Table is modified, it is necessary to invalidate TLB (TLB Flush)
   //TLB entries can become incorrect
