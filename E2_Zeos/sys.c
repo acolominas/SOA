@@ -108,8 +108,7 @@ int sys_fork()
   //Copiamos el contenido de las paginas de DATA+STACK del padre a las paginas del hijo.
   int dir_src,dir_dest;
   int page_ph_hijo;
-  //Para poder acceder, añadimos la pagina a la TP del padre
-  //no podemos acceder al espacio de direeciones del hijo desde el padre
+  //No podemos acceder al espacio de direeciones del hijo desde el padre
   //Solucion: Añadir las paginas del hijo al espacio de direcciones del padre.
   //          Se añaden al final de la TP del Padre
   //                                                    | pos
@@ -119,6 +118,7 @@ int sys_fork()
     page_ph_hijo = pages_data[page_log];
     set_ss_pag(TP_padre,pos+page_log,page_ph_hijo);
 
+    //@MEM_LOG = (PAGINA_INICIAL+NUM_PAGE)*PAGE_SIZE
     dir_src = (PAG_LOG_INIT_DATA+page_log)*PAGE_SIZE;
     dir_dest = (pos+page_log)*PAGE_SIZE;
     copy_data((void*)(dir_src), (void*)(dir_dest), PAGE_SIZE); //direccion logica
@@ -134,12 +134,16 @@ int sys_fork()
   hijo->PID = newPID();
 
 
-  //Preparamos la stack del hijo
+  //Modificamos el stack del hijo
   //stack[KERNEL_STACK_SIZE-19] = 0 //pop %ebp task_switch
   //stack[KERNEL_STACK_SIZE-18] = @ret_from_fork
   //stack[KERNEL_STACK_SIZE-17] = @ret_handler
   //stack[KERNEL_STACK_SIZE-16] = CTX SW
-  //stack[KERNEL_STACK_SIZE-4] = CTX HW
+  //stack[-------------------]
+  //stack[KERNEL_STACK_SIZE-6] = CTX SW
+  //stack[KERNEL_STACK_SIZE-5] = CTX HW
+  //stack[-------------------]
+  //stack[KERNEL_STACK_SIZE-1] = CTX HW
   uhijo->stack[KERNEL_STACK_SIZE-19] = 0;
   uhijo->stack[KERNEL_STACK_SIZE-18] = (unsigned long)&ret_from_fork;
   hijo->kernel_esp = (unsigned long)&uhijo->stack[KERNEL_STACK_SIZE-19];
