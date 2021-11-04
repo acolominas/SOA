@@ -14,7 +14,7 @@ int __attribute__ ((__section__(".text.main")))
   //write(1,"hola",-1);
   //perror();
   //int time = 0;
-  char buff[4];
+  //char buff[4];
 
 	//time = gettime();
 	//itoa(time,budff);
@@ -39,7 +39,7 @@ int __attribute__ ((__section__(".text.main")))
     for (i = 0; i < 5000; i++ ) {
       write(1,buff,strlen(buff));
     }
-    exit();
+    //exit();
   }
   else {
     char buff[] = "\nSoy init";

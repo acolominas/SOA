@@ -108,14 +108,14 @@ int sys_fork()
   //Copiamos el contenido de las paginas de DATA+STACK del padre a las paginas del hijo.
   int dir_src,dir_dest;
   int page_ph_hijo;
-  //LAS PAGINAS FISICAS DEL HIJO LAS PONEMOS AL FINAL DE LA TP DEL PADRE
+  //Para poder acceder, añadimos la pagina a la TP del padre
+  //no podemos acceder al espacio de direeciones del hijo desde el padre
+  //Solucion: Añadir las paginas del hijo al espacio de direcciones del padre.
+  //          Se añaden al final de la TP del Padre
+  //                                                    | pos
+  // TP_PADRE: [PAG_KERNEL | PAGE_CODE | PAG_DATA_STACK | PAG_DATA_STACK_HIJO ]
   int pos = PAG_LOG_INIT_DATA+NUM_PAG_DATA;
   for (page_log=0; page_log<NUM_PAG_DATA; page_log++){
-    //Para poder acceder, añadimos la pagina a la TP del padre
-    //no podemos acceder al espacio de direeciones del hijo desde el padre
-    //Solucion: Añadir las paginas del hijo al espacio de direcciones del padre.
-    //          Se añaden al final de la TP del Padre
-    // TP_PADRE: [PAG_KERNEL | PAGE_CODE | PAG_DATA_STACK | PAG_DATA_STACK_HIJO]
     page_ph_hijo = pages_data[page_log];
     set_ss_pag(TP_padre,pos+page_log,page_ph_hijo);
 
