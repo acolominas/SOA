@@ -23,28 +23,24 @@ int __attribute__ ((__section__(".text.main")))
   //itoa(pid,buff);
   //write(1,buff,strlen(buff));
 
-  pid = fork();
+  int pid = fork();
   if(pid == 0) {
-    int pid_2 = fork();
-    if (pid_2 == 0) {
-        char buff1[] = "\nSoy el nieto de init";
-        int i;
-        for (i = 0; i < 5000; i++ ) {
-          write(1,buff1,strlen(buff1));
-        }
-        //exit();
+    int pid_2;
+    pid_2 = fork();
+    int i = 0;
+    if(pid_2 != 0) {
+      char buff[] = "\nSoy el hijo de init";
+      while(1) {
+        write(1,buff,strlen(buff));
+      }
     }
-    char buff[] = "\nSoy el hijo de init";
-    int i;
-    for (i = 0; i < 5000; i++ ) {
-      write(1,buff,strlen(buff));
-    }
-    //exit();
-  }
-  else {
-    char buff[] = "\nSoy init";
-    while (1) {
-      write(1,buff,strlen(buff));
+    else {
+      char buff[] = "\nSoy el nieto de init";
+      while(1){
+        write(1,buff,strlen(buff));
+        if (i == 50000) exit();
+        i++;
+      }
     }
   }
   while(1) { }

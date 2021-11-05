@@ -21,6 +21,7 @@ struct list_head free_queue;
 struct list_head ready_queue;
 struct task_struct *idle_task;
 
+
 /* get_DIR - Returns the Page Directory address for task 't' */
 page_table_entry * get_DIR (struct task_struct *t)
 {
@@ -49,10 +50,10 @@ void cpu_idle(void)
 {
 	__asm__ __volatile__("sti": : :"memory");
 
-  printk("\nSoy IDLE");
+
 	while(1)
 	{
-  ;
+  printk("\nSoy IDLE");
 	}
 }
 
@@ -142,13 +143,13 @@ void sched_next_rr() {
 }
 
 int needs_sched_rr(){
+  //num_ticks se pasa de 0 y se vuelve negativo.
   if ((num_ticks == 0)&&(!list_empty(&ready_queue))) return 1;
-  if (num_ticks == 0) num_ticks = get_quantum(current());
   return 0;
 }
 
 void update_sched_data_rr() {
-  --num_ticks;
+  if (num_ticks > 0) num_ticks--;
 }
 
 int get_quantum (struct task_struct *t) {
@@ -167,7 +168,6 @@ void schedule() {
   update_sched_data_rr();
   if (needs_sched_rr() == 1) {
     update_process_state_rr(current(),&ready_queue);
-    printk("\nTask switch!");
     sched_next_rr();
   }
 }
