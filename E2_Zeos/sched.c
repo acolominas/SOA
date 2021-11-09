@@ -143,7 +143,6 @@ void sched_next_rr() {
 }
 
 int needs_sched_rr(){
-  //num_ticks se pasa de 0 y se vuelve negativo.
   if ((num_ticks == 0)&&(!list_empty(&ready_queue))) return 1;
   return 0;
 }

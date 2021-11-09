@@ -23,7 +23,7 @@ int __attribute__ ((__section__(".text.main")))
   //itoa(pid,buff);
   //write(1,buff,strlen(buff));
 
-  int pid = fork();
+  /*int pid = fork();
   if(pid == 0) {
     int pid_2;
     pid_2 = fork();
@@ -42,6 +42,6 @@ int __attribute__ ((__section__(".text.main")))
         i++;
       }
     }
-  }
+  }*/
   while(1) { }
 }
