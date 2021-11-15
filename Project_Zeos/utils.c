@@ -140,9 +140,9 @@ unsigned long get_ticks(void) {
 void memset(void *s, unsigned char c, int size)
 {
   unsigned char *m=(unsigned char *)s;
-  
+
   int i;
-  
+
   for (i=0; i<size; i++)
   {
     m[i]=c;
@@ -150,9 +150,9 @@ void memset(void *s, unsigned char c, int size)
 }
 
 //retorna el ID dado un list_head de sem
-int get_sem_id(struct list_head *first)
-{  
-  return (int)(&first+sizeof(struct list_head));
+int get_sem_id(struct list_head *sem)
+{
+  return (int)(&sem+sizeof(struct list_head));
 }
 
 int sem_init (int n_sem, unsigned int value) {
@@ -167,20 +167,31 @@ int sem_wait (int n_sem) {
   if (n_sem < 0 || n_sem >= NR_SEM) return -1;
   sem[n_sem].count --;
   if (sem[n_sem].count <= 0) {
-    list_add(current(),&sem[n_sem].blocked);
-    sched_next_rr();    
+    list_add_tail(&current()->list,&sem[n_sem].blocked);
+    sched_next_rr();
   }
-  return 0; 
+  return 0;
 }
 
 int sem_signal (int n_sem) {
   if (n_sem < 0 || n_sem >= NR_SEM) return -1;
   sem[n_sem].count ++;
   if (sem[n_sem].count <= 0) {
-    list_head *l = list_head_first(sem[n_sem].blocked);
+    struct list_head *l = list_first(&sem[n_sem].blocked);
     list_del(l);
-    struct task_struct *task = list_head_to_task_struct(l);
-    list_add(task,&readyqueue);      
+    list_add_tail(l,&readyqueue);
   }
+  return 0;
+}
+
+int sem_destroy (int n_sem) {
+  if (n_sem < 0 || n_sem >= NR_SEM) return -1;
+  while(!list_empty(&sem[n_sem].blocked)) {
+    struct list_head *l = list_first(&sem[n_sem].blocked);
+    list_del(l);
+    list_add_tail(l,&readyqueue);
+  }
+  list_del(&sem[n_sem].list);
+  list_add_tail(&sem[n_sem].list,&freesem_queue);
   return 0;
 }

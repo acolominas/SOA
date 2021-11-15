@@ -2,6 +2,7 @@
 #define UTILS_H
 
 #include <list.h>
+#include <sched.h>
 
 #define NR_SEM 10
 
@@ -22,9 +23,10 @@ void memset(void *s, unsigned char c, int size);
 struct sem_t {
 	//lo ponemos al principio para poder hacer cast directo. La @direccion ya esta la propia struct.
 	struct list_head list;
-	int id; 
+	int id;
 	int count;
-	struct list_head blocked;	
+	//lista de PCB bloqueados
+	struct list_head blocked;
 };
 
 int sem_init (int n_sem, unsigned int value);
