@@ -11,19 +11,17 @@
 
 #include <zeos_interrupt.h>
 
-#include <schedperf.h>
-
 Gate idt[IDT_ENTRIES];
 Register    idtR;
 
 char char_map[] =
 {
   '\0','\0','1','2','3','4','5','6',
-  '7','8','9','0','\'','\0','\0','\0',
+  '7','8','9','0','\'','¡','\0','\0',
   'q','w','e','r','t','y','u','i',
   'o','p','`','+','\0','\0','a','s',
-  'd','f','g','h','j','k','l','\0',
-  '\0','\0','\0','\0','z','x','c','v',
+  'd','f','g','h','j','k','l','ñ',
+  '\0','º','\0','ç','z','x','c','v',
   'b','n','m',',','.','-','\0','*',
   '\0','\0','\0','\0','\0','\0','\0','\0',
   '\0','\0','\0','\0','\0','\0','\0','7',
@@ -38,16 +36,15 @@ int zeos_ticks = 0;
 void clock_routine()
 {
   zeos_show_clock();
-  zeos_update_read_console_emul();
   zeos_ticks ++;
-
+  
   schedule();
 }
 
 void keyboard_routine()
 {
   unsigned char c = inb(0x60);
-
+  
   if (c&0x80) printc_xy(0, 0, char_map[c&0x7f]);
 }
 
@@ -99,18 +96,29 @@ void clock_handler();
 void keyboard_handler();
 void system_call_handler();
 
+void setMSR(unsigned long msr_number, unsigned long high, unsigned long low);
+
+void setSysenter()
+{
+  setMSR(0x174, 0, __KERNEL_CS);
+  setMSR(0x175, 0, INITIAL_ESP);
+  setMSR(0x176, 0, (unsigned long)system_call_handler);
+}
+
 void setIdt()
 {
   /* Program interrups/exception service routines */
   idtR.base  = (DWord)idt;
   idtR.limit = IDT_ENTRIES * sizeof(Gate) - 1;
-
+  
   set_handlers();
 
   /* ADD INITIALIZATION CODE FOR INTERRUPT VECTOR */
   setInterruptHandler(32, clock_handler, 0);
   setInterruptHandler(33, keyboard_handler, 0);
-  setTrapHandler(0x80, system_call_handler, 3);
+
+  setSysenter();
 
   set_idt_reg(&idtR);
 }
+

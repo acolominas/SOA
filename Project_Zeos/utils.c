@@ -3,6 +3,12 @@
 
 #include <mm_address.h>
 
+struct sem_t sem[NR_SEM];
+
+struct list_head freesem_queue;
+
+extern struct list_head readyqueue;
+
 void copy_data(void *start, void *dest, int size)
 {
   DWord *p = start, *q = dest;
@@ -141,4 +147,40 @@ void memset(void *s, unsigned char c, int size)
   {
     m[i]=c;
   }
+}
+
+//retorna el ID dado un list_head de sem
+int get_sem_id(struct list_head *first)
+{  
+  return (int)(&first+sizeof(struct list_head));
+}
+
+int sem_init (int n_sem, unsigned int value) {
+  if (n_sem < 0 || n_sem >= NR_SEM) return -1;
+  if (value < 0) return -1;
+  sem[n_sem].count = value;
+  INIT_LIST_HEAD(&(sem[n_sem].blocked));
+  return 0;
+}
+
+int sem_wait (int n_sem) {
+  if (n_sem < 0 || n_sem >= NR_SEM) return -1;
+  sem[n_sem].count --;
+  if (sem[n_sem].count <= 0) {
+    list_add(current(),&sem[n_sem].blocked);
+    sched_next_rr();    
+  }
+  return 0; 
+}
+
+int sem_signal (int n_sem) {
+  if (n_sem < 0 || n_sem >= NR_SEM) return -1;
+  sem[n_sem].count ++;
+  if (sem[n_sem].count <= 0) {
+    list_head *l = list_head_first(sem[n_sem].blocked);
+    list_del(l);
+    struct task_struct *task = list_head_to_task_struct(l);
+    list_add(task,&readyqueue);      
+  }
+  return 0;
 }

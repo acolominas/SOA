@@ -96,22 +96,24 @@ ENTRY(keyboard_handler)
       iret;
 
 ENTRY(system_call_handler)
-      SAVE_ALL
-      pushl %eax;
-      call user_to_system;
-      popl %eax;
-      cmpl $0, %eax;
-      jl err;
-      cmpl $MAX_SYSCALL, %eax;
-      jg err;
-      call *sys_call_table(, %eax, 0x4);
-      jmp fin;
-err:
-      movl $-ENOSYS, %eax;
-fin:
-      movl %eax, 0x18(%esp);
-      pushl %eax;
-      call system_to_user;
-      popl %eax;
-      RESTORE_ALL
-      iret;
+	push $__USER_DS
+	push %ebp
+	pushfl
+	push $__USER_CS
+	push 4(%ebp)
+	SAVE_ALL	// What about arg 6?
+	cmpl $0, %eax
+	jl sysenter_err
+	cmpl $MAX_SYSCALL, %eax
+	jg sysenter_err
+	call *sys_call_table(, %eax, 0x04)
+	jmp sysenter_fin
+sysenter_err:
+	movl $-ENOSYS, %eax
+sysenter_fin:
+	movl %eax, 0x18(%esp)
+	RESTORE_ALL
+	movl (%esp), %edx // Return address
+	movl 12(%esp), %ecx	      // User stack address
+	sti
+	sysexit

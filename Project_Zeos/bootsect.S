@@ -65,6 +65,9 @@ go:	mov	di,#0x4000-12	! 0x4000 is arbitrary value >= length of
 	mov	bp,#msg1
 	mov	ax,#0x1301	! write string, move cursor
 	int	0x10
+	mov	ah,#0x01	! Set cursor lines
+	mov	ch,#0x30	! Invalid upper value
+	int	0x10		! Delete cursor
 
 ! ok, we've written the message, now
 ! we want to load the system (at 0x10000)

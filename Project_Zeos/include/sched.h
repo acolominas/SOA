@@ -55,6 +55,7 @@ void schedule(void);
 struct task_struct * current();
 
 void task_switch(union task_union*t);
+void switch_stack(int * save_sp, int new_sp);
 
 void sched_next_rr(void);
 

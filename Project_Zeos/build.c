@@ -3,8 +3,8 @@
  *
  *  Copyright (C) 1991, 1992  Linus Torvalds
  *  Copyright (C) 1997 Martin Mares
- *  2003 Modificat per Zeus Gómez per insertar el codi d'usuari
- *       també a la imatge del nucli en espai d'adreces separat.
+ *  2003 Modificat per Zeus GÃ³mez per insertar el codi d'usuari
+ *       tambÃ© a la imatge del nucli en espai d'adreces separat.
  */
 
 /*
@@ -191,9 +191,9 @@ int main(int argc, char ** argv)
 	  die("Write of user length failed");
       if (lseek(1, 520, SEEK_SET) != 520)
 	  die("Output: seek failed");
-	buf[0] = (0x7E0B & 0xff);
-	buf[1] = ((0x7E0B >> 8) & 0xff);
-	buf[2] = ((0x7E0B >> 16) & 0xff);
+	buf[0] = (0x7E1A & 0xff);
+	buf[1] = ((0x7E1A >> 8) & 0xff);
+	buf[2] = ((0x7E1A >> 16) & 0xff);
 	buf[3] = 0;
 	if (write(1, buf, 4) != 4)
 	  die("Write of user length failed");
