@@ -22,7 +22,7 @@ void copy_data(void *start, void *dest, int size)
   while(size > 0) {
     *q1++ = *p1++;
     size --;
-  }
+  } 
 }
 /* Copia de espacio de usuario a espacio de kernel, devuelve 0 si ok y -1 si error*/
 int copy_from_user(void *start, void *dest, int size)
@@ -149,15 +149,27 @@ void memset(void *s, unsigned char c, int size)
   }
 }
 
+
+int get_free_sem() {
+   int a = -1;
+   if (!list_empty(&freesem_queue)) {
+    struct list_head *l = list_first(&freesem_queue);
+    a = get_sem_id(l);
+    list_del(l);
+   }
+  return a;
+}
+
 //retorna el ID dado un list_head de sem
 int get_sem_id(struct list_head *sem)
 {
-  return (int)(&sem+sizeof(struct list_head));
+  return *((int*)((int)sem+sizeof(struct list_head)));
 }
 
 int sem_init (int n_sem, unsigned int value) {
   if (n_sem < 0 || n_sem >= NR_SEM) return -1;
   if (value < 0) return -1;
+  if (sem[n_sem].count != NULL) return -1;
   sem[n_sem].count = value;
   INIT_LIST_HEAD(&(sem[n_sem].blocked));
   return 0;
@@ -186,6 +198,7 @@ int sem_signal (int n_sem) {
 
 int sem_destroy (int n_sem) {
   if (n_sem < 0 || n_sem >= NR_SEM) return -1;
+  if (sem[n_sem].count == NULL) return -1;
   while(!list_empty(&sem[n_sem].blocked)) {
     struct list_head *l = list_first(&sem[n_sem].blocked);
     list_del(l);

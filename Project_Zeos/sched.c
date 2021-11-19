@@ -33,7 +33,7 @@ extern struct list_head freesem_queue;
 
 // Free task structs
 struct list_head freequeue;
-// Ready queue
+// Ready queue 
 struct list_head readyqueue;
 
 void init_stats(struct stats *s)
@@ -75,8 +75,16 @@ void cpu_idle(void)
 {
 	__asm__ __volatile__("sti": : :"memory");
 
+ /* struct list_head *l = list_first(&freesem_queue);
+
+    int a = get_sem_id(l);
+    char buff[64];
+    itoa(a,buff);
+    printk(buff);*/
+  
 	while(1)
 	{
+    
 	;
 	}
 }
@@ -235,6 +243,7 @@ void init_freesem_queue()
   for (i=0; i<NR_SEM; i++)
   {
     sem[i].id = i;
+    sem[i].count = NULL;
     list_add_tail(&(sem[i].list), &freesem_queue);
   }
 }

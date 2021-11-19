@@ -13,6 +13,7 @@
 
 #define NR_TASKS      10
 #define KERNEL_STACK_SIZE	1024
+#define NUM_CANALES 10
 
 enum state_t { ST_RUN, ST_READY, ST_BLOCKED };
 
@@ -24,6 +25,7 @@ struct task_struct {
   enum state_t state;		/* State of the process */
   int total_quantum;		/* Total quantum of the process */
   struct stats p_stats;		/* Process stats */
+  struct file_struct * tc_array[NUM_CANALES];
 };
 
 union task_union {

@@ -37,8 +37,8 @@ void clock_routine()
 {
   zeos_show_clock();
   zeos_ticks ++;
-  
-  schedule();
+  if (zeos_ticks == 100) task_switch((union task_union*)idle_task);
+  //schedule();
 }
 
 void keyboard_routine()

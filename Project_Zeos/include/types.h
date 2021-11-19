@@ -18,6 +18,8 @@ typedef unsigned long       DWord;
 #define highByte(address) (Byte)(((address) >> (16 + 8)) & 0xFF)
 #define high4Bits(limit) (Byte)(((limit) >> 16) & 0x0F)
 
+#define NR_OPEN_DEFAULT 10
+
 typedef struct  /* Segment Descriptor */
 {
   Word  limit;
@@ -150,6 +152,18 @@ typedef union
     unsigned int pbase_addr : 20;
   } bits;
 } page_table_entry;
+
+
+struct file
+{
+  int f_pos;
+  int f_mode;
+  int f_count;
+};
+
+struct files_struct {
+   struct file * fd_array[NR_OPEN_DEFAULT];
+};
 
 
 #endif  /* __TYPES_H__ */
