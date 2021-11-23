@@ -2,10 +2,10 @@
  * sched.c - initializes struct for task 0 anda task 1
  */
 
-#include <types.h>
+
+#include <sched.h>
 #include <hardware.h>
 #include <segment.h>
-#include <sched.h>
 #include <mm.h>
 #include <io.h>
 #include <utils.h>
@@ -33,8 +33,19 @@ extern struct list_head freesem_queue;
 
 // Free task structs
 struct list_head freequeue;
-// Ready queue 
+// Ready queue
 struct list_head readyqueue;
+
+tabla_ficheros_abiertos_entry tfa_array[NUM_FICHEROS_ABIERTOS];
+
+void init_tfa(){
+  int i;
+  for (i=0; i<NUM_FICHEROS_ABIERTOS; i++)
+  {
+    tfa_array[i].nrefs_read = 0;
+    tfa_array[i].nrefs_write = 0;
+  }
+}
 
 void init_stats(struct stats *s)
 {
@@ -48,25 +59,25 @@ void init_stats(struct stats *s)
 }
 
 /* get_DIR - Returns the Page Directory address for task 't' */
-page_table_entry * get_DIR (struct task_struct *t) 
+page_table_entry * get_DIR (struct task_struct *t)
 {
 	return t->dir_pages_baseAddr;
 }
 
 /* get_PT - Returns the Page Table address for task 't' */
-page_table_entry * get_PT (struct task_struct *t) 
+page_table_entry * get_PT (struct task_struct *t)
 {
 	return (page_table_entry *)(((unsigned int)(t->dir_pages_baseAddr->bits.pbase_addr))<<12);
 }
 
 
-int allocate_DIR(struct task_struct *t) 
+int allocate_DIR(struct task_struct *t)
 {
 	int pos;
 
 	pos = ((int)t-(int)task)/sizeof(union task_union);
 
-	t->dir_pages_baseAddr = (page_table_entry*) &dir_pages[pos]; 
+	t->dir_pages_baseAddr = (page_table_entry*) &dir_pages[pos];
 
 	return 1;
 }
@@ -75,16 +86,14 @@ void cpu_idle(void)
 {
 	__asm__ __volatile__("sti": : :"memory");
 
- /* struct list_head *l = list_first(&freesem_queue);
 
-    int a = get_sem_id(l);
-    char buff[64];
-    itoa(a,buff);
-    printk(buff);*/
-  
+  /*char buff[64];
+  itoa(get_free_sem(),buff);
+  printk(buff);*/
+
 	while(1)
 	{
-    
+
 	;
 	}
 }
@@ -211,6 +220,10 @@ void init_task1(void)
 
   allocate_DIR(c);
 
+  tfa_array[0].nrefs_read++;
+  tfa_array[1].nrefs_write++;
+  c->tc_array[0] = &(tfa_array[0]);
+  c->tc_array[1] = &(tfa_array[1]);
   set_user_pages(c);
 
   tss.esp0=(DWord)&(uc->stack[KERNEL_STACK_SIZE]);
@@ -259,7 +272,7 @@ void init_sched()
 struct task_struct* current()
 {
   int ret_value;
-  
+
   return (struct task_struct*)( ((unsigned int)&ret_value) & 0xfffff000);
 }
 

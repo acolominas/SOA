@@ -4,6 +4,7 @@
 
 #ifndef __TYPES_H__
 #define __TYPES_H__
+#include <semaphores.h>
 
 /** System types definition **/
 /*****************************/
@@ -17,8 +18,6 @@ typedef unsigned long       DWord;
 #define midByte(address) (Byte)(((address) >> 16) & 0xFF)
 #define highByte(address) (Byte)(((address) >> (16 + 8)) & 0xFF)
 #define high4Bits(limit) (Byte)(((limit) >> 16) & 0x0F)
-
-#define NR_OPEN_DEFAULT 10
 
 typedef struct  /* Segment Descriptor */
 {
@@ -135,10 +134,10 @@ typedef Word Selector;
 
 #define NULL 0
 
-typedef union 
+typedef union
 {
   unsigned int entry;
-  struct {    
+  struct {
     unsigned int present  : 1;
     unsigned int rw       : 1;
     unsigned int user     : 1;
@@ -153,17 +152,31 @@ typedef union
   } bits;
 } page_table_entry;
 
+struct sem_t {
+	//lo ponemos al principio para poder hacer cast directo. La @direccion ya esta la propia struct.
+	struct list_head list;
+	int id;
+	int count;
+	//lista de PCB bloqueados
+	struct list_head blocked;
+	int destroyed; // si el semáforo ha sido destruido = 1; sino = 0.
+};
 
-struct file
+
+typedef struct
 {
-  int f_pos;
-  int f_mode;
-  int f_count;
-};
-
-struct files_struct {
-   struct file * fd_array[NR_OPEN_DEFAULT];
-};
-
-
+  int *buffer_read;
+  int *buffer_write;
+  int bytes;// el número de bytes disponibles en el buffer.
+  int nrefs_read;
+  int nrefs_write;
+  struct sem_t semaforo;
+  /*Se bloquea si hay alguien escribiendo y el canal está completo, entonces se bloquea esperando a que el lector lo vaya vacíando. También se bloquea si hay un lector y este está esperando a que el escritor escriba*/
+} tabla_ficheros_abiertos_entry;
+/*
+typedef struct
+{
+  struct tabla_ficheros_abiertos_entry tfa_entry; //puntero a una entrada de la tabla de ficheros abiertos.
+} tabla_canales_entry;
+*/
 #endif  /* __TYPES_H__ */
