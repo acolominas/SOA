@@ -26,7 +26,7 @@ ENTRY(write)
 	call syscall_sysenter
 	popl %ebx
 	test %eax, %eax
-	js nok	// if (eax < 0) -> 
+	js nok	// if (eax < 0) ->
 	popl %ebp
 	ret
 
@@ -100,3 +100,47 @@ ENTRY(get_stats)
 	popl %ebp
 	ret
 
+/* int pipe(int *pd); */
+ENTRY(pipe)
+	pushl %ebp
+	movl %esp, %ebp
+	pushl %ebx;  // Save EBX, ESI and EDI if modified
+	movl $15, %eax
+	movl 0x8(%ebp), %ebx;	//pd
+	call syscall_sysenter
+	popl %ebx
+	test %eax, %eax
+	js nok	// if (eax < 0) -->
+	popl %ebp
+	ret
+
+/* int read(int fd, void *buf, int size); */
+ENTRY(read)
+	pushl %ebp
+	movl %esp, %ebp
+	pushl %ebx;  // Save EBX, ESI and EDI if modified
+	movl $17, %eax
+	movl 0x8(%ebp), %ebx;	//fd
+	movl 0xC(%ebp), %ecx;	//buffer
+	movl 0x10(%ebp), %edx;	//size
+	call syscall_sysenter
+	popl %ebx
+	test %eax, %eax
+	js nok	// if (eax < 0) ->
+	popl %ebp
+	ret
+
+
+/* int close(int fd); */
+ENTRY(close)
+	pushl %ebp
+	movl %esp, %ebp
+	pushl %ebx;  // Save EBX, ESI and EDI if modified
+	movl $16, %eax
+	movl 0x8(%ebp), %ebx;	//fd
+	call syscall_sysenter
+	popl %ebx
+	test %eax, %eax
+	js nok	// if (eax < 0) -->
+	popl %ebp
+	ret
