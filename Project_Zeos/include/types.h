@@ -165,6 +165,8 @@ struct sem_t {
 
 typedef struct
 {
+  struct list_head list; //para tener una lista de las entradas libres en la TFA y no recorrer cada vez el array
+  int pos;
   int *buffer_read;
   int *buffer_write;
   int bytes;// el número de bytes disponibles en el buffer.
@@ -173,10 +175,12 @@ typedef struct
   struct sem_t semaforo;
   /*Se bloquea si hay alguien escribiendo y el canal está completo, entonces se bloquea esperando a que el lector lo vaya vacíando. También se bloquea si hay un lector y este está esperando a que el escritor escriba*/
 } tabla_ficheros_abiertos_entry;
-/*
+
 typedef struct
 {
-  struct tabla_ficheros_abiertos_entry tfa_entry; //puntero a una entrada de la tabla de ficheros abiertos.
+  struct list_head list; //para tener una lista de las entradas libres en la TC y no recorrer cada vez el array
+  int pos;
+  tabla_ficheros_abiertos_entry * tfa_entry; //puntero a una entrada de la tabla de ficheros abiertos.
 } tabla_canales_entry;
-*/
+
 #endif  /* __TYPES_H__ */

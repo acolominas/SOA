@@ -26,7 +26,8 @@ struct task_struct {
   enum state_t state;		/* State of the process */
   int total_quantum;		/* Total quantum of the process */
   struct stats p_stats;		/* Process stats */
-  struct tabla_ficheros_abiertos_entry * tc_array[NUM_CANALES];
+  struct list_head tcfreequeue;
+  tabla_canales_entry * tc_array[NUM_CANALES];
 };
 
 union task_union {
@@ -52,6 +53,8 @@ void init_task1(void);
 void init_idle(void);
 
 void init_tfa(void);
+
+void init_tc(struct task_struct *t);
 
 void init_sched(void);
 

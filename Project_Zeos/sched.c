@@ -36,14 +36,30 @@ struct list_head freequeue;
 // Ready queue
 struct list_head readyqueue;
 
+//free TFA entry queue
+struct list_head tfafreequeue;
+
 tabla_ficheros_abiertos_entry tfa_array[NUM_FICHEROS_ABIERTOS];
 
-void init_tfa(){
+void init_tfa()
+{
   int i;
   for (i=0; i<NUM_FICHEROS_ABIERTOS; i++)
   {
     tfa_array[i].nrefs_read = 0;
     tfa_array[i].nrefs_write = 0;
+    tfa_array[i].pos = i;
+    list_add_tail(&(tfa_array[i].list), &tfafreequeue);
+  }
+}
+
+void init_tc(struct task_struct *t)
+{
+  int i;
+  for (i=0; i<NUM_CANALES; i++)
+  {
+    t->tc_array[i]->pos = i;
+    list_add_tail(&(t->tc_array[i]->list), &(t->tcfreequeue));
   }
 }
 
@@ -220,10 +236,11 @@ void init_task1(void)
 
   allocate_DIR(c);
 
+  init_tc(c);
+  tfa_array[0].nrefs_write++;
   tfa_array[0].nrefs_read++;
-  tfa_array[1].nrefs_write++;
-  c->tc_array[0] = &(tfa_array[0]);
-  c->tc_array[1] = &(tfa_array[1]);
+  c->tc_array[0]->tfa_entry = &(tfa_array[0]);
+  c->tc_array[1]->tfa_entry = &(tfa_array[0]);
   set_user_pages(c);
 
   tss.esp0=(DWord)&(uc->stack[KERNEL_STACK_SIZE]);
