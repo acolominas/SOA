@@ -44,7 +44,8 @@ tabla_ficheros_abiertos_entry tfa_array[NUM_FICHEROS_ABIERTOS];
 void init_tfa()
 {
   int i;
-  for (i=0; i<NUM_FICHEROS_ABIERTOS; i++)
+  INIT_LIST_HEAD(&tfafreequeue);
+  for (i=1; i<NUM_FICHEROS_ABIERTOS; i++)
   {
     tfa_array[i].nrefs_read = 0;
     tfa_array[i].nrefs_write = 0;
@@ -53,13 +54,18 @@ void init_tfa()
   }
 }
 
+
 void init_tc(struct task_struct *t)
 {
   int i;
-  for (i=0; i<NUM_CANALES; i++)
+  INIT_LIST_HEAD(&(t->tcfreequeue));
+  for (i=2; i<NUM_CANALES; i++)
   {
-    t->tc_array[i]->pos = i;
-    list_add_tail(&(t->tc_array[i]->list), &(t->tcfreequeue));
+    //t->tc_array[i]->pos = i;
+    //list_add_tail(&t->tc_array[i]->list, &(t->tcfreequeue));
+    tabla_canales_entry * tce = &(t->tc_array[i]);
+    tce->pos = i;
+    list_add_tail(&tce->list, &(t->tcfreequeue));
   }
 }
 
@@ -237,10 +243,19 @@ void init_task1(void)
   allocate_DIR(c);
 
   init_tc(c);
-  tfa_array[0].nrefs_write++;
-  tfa_array[0].nrefs_read++;
-  c->tc_array[0]->tfa_entry = &(tfa_array[0]);
+  
+  tfa_array[0].nrefs_write = 1;
+  tfa_array[0].nrefs_read = 1;
+  tabla_canales_entry * tce_0 = &(c->tc_array[0]);
+  tabla_canales_entry * tce_1 = &(c->tc_array[1]);
+  tce_0->pos = 0;
+  tce_0->tfa_entry = &(tfa_array[0]);
+  tce_1->pos = 1;
+  tce_0->tfa_entry = &(tfa_array[0]);
+  /*c->tc_array[0]->tfa_entry = &(tfa_array[0]);
+  c->tc_array[0]->pos = 0;
   c->tc_array[1]->tfa_entry = &(tfa_array[0]);
+  c->tc_array[1]->pos = 1;*/
   set_user_pages(c);
 
   tss.esp0=(DWord)&(uc->stack[KERNEL_STACK_SIZE]);

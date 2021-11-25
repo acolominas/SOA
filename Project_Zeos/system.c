@@ -87,10 +87,11 @@ int __attribute__((__section__(".text.main")))
 
   //monoprocess_init_addr_space(); /* TO BE DELETED WHEN ADDED THE PROCESS MANAGEMENT CODE TO BECOME MULTIPROCESS */
 
-
-  init_tfa();
   /* Initialize Scheduling */
   init_sched();
+
+  /* Initialize Tabla Ficheros Abiertos */
+  init_tfa();
 
   /* Initialize idle task  data */
   init_idle();

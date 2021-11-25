@@ -12,13 +12,13 @@ int __attribute__ ((__section__(".text.main")))
 
   int pd[2];
 
-  int res = pipe(pd);
+  //int res = pipe(pd);
 
-  char buff[4];
+  //char buff[4];
 
-  itoa(pd[0],buff);
+  //itoa(pd[0],buff);
 
-  write(1,buff,strlen(buff));
+  //write(1,buff,strlen(buff));
 
 
   while(1) { }

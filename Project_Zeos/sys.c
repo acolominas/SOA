@@ -20,6 +20,8 @@
 #define LECTURA 0
 #define ESCRIPTURA 1
 
+extern struct list_head tfafreequeue;
+
 void * get_ebp();
 
 int check_fd(int fd, int permissions)
@@ -239,8 +241,18 @@ int sys_get_stats(int pid, struct stats *st)
 
 int sys_pipe(int *pd)
 {
-  pd[0] = 1;
-  pd[1] = 2;
+
+  if(list_empty(&tfafreequeue)) return -EMFILE;
+  if(list_empty(&(current()->tcfreequeue))) return -EBADFD ;
+  int new_ph_pag=alloc_frame();
+  if (new_ph_pag!=-1) {
+    pd[0] = 1;
+    pd[1] = 2;
+  }
+  else {
+    return -EAGAIN;
+  }
+
   return 0;
 }
 
