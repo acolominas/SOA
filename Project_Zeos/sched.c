@@ -37,37 +37,9 @@ struct list_head freequeue;
 struct list_head readyqueue;
 
 //free TFA entry queue
-struct list_head tfafreequeue;
+extern struct list_head tfafreequeue;
 
-tabla_ficheros_abiertos_entry tfa_array[NUM_FICHEROS_ABIERTOS];
-
-void init_tfa()
-{
-  int i;
-  INIT_LIST_HEAD(&tfafreequeue);
-  for (i=1; i<NUM_FICHEROS_ABIERTOS; i++)
-  {
-    tfa_array[i].nrefs_read = 0;
-    tfa_array[i].nrefs_write = 0;
-    tfa_array[i].pos = i;
-    list_add_tail(&(tfa_array[i].list), &tfafreequeue);
-  }
-}
-
-
-void init_tc(struct task_struct *t)
-{
-  int i;
-  INIT_LIST_HEAD(&(t->tcfreequeue));
-  for (i=2; i<NUM_CANALES; i++)
-  {
-    //t->tc_array[i]->pos = i;
-    //list_add_tail(&t->tc_array[i]->list, &(t->tcfreequeue));
-    tabla_canales_entry * tce = &(t->tc_array[i]);
-    tce->pos = i;
-    list_add_tail(&tce->list, &(t->tcfreequeue));
-  }
-}
+extern tabla_ficheros_abiertos_entry tfa_array[NUM_FICHEROS_ABIERTOS];
 
 void init_stats(struct stats *s)
 {
@@ -243,15 +215,7 @@ void init_task1(void)
   allocate_DIR(c);
 
   init_tc(c);
-  
-  tfa_array[0].nrefs_write = 1;
-  tfa_array[0].nrefs_read = 1;
-  tabla_canales_entry * tce_0 = &(c->tc_array[0]);
-  tabla_canales_entry * tce_1 = &(c->tc_array[1]);
-  tce_0->pos = 0;
-  tce_0->tfa_entry = &(tfa_array[0]);
-  tce_1->pos = 1;
-  tce_0->tfa_entry = &(tfa_array[0]);
+  c->num_pipes = 0;
   /*c->tc_array[0]->tfa_entry = &(tfa_array[0]);
   c->tc_array[0]->pos = 0;
   c->tc_array[1]->tfa_entry = &(tfa_array[0]);

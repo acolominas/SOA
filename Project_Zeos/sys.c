@@ -17,10 +17,16 @@
 
 #include <errno.h>
 
+#include <fs.h>
+
 #define LECTURA 0
 #define ESCRIPTURA 1
 
 extern struct list_head tfafreequeue;
+
+extern tabla_ficheros_abiertos_entry tfa_array[NUM_FICHEROS_ABIERTOS];
+
+extern struct sem_t sem[NR_SEM];
 
 void * get_ebp();
 
@@ -241,18 +247,59 @@ int sys_get_stats(int pid, struct stats *st)
 
 int sys_pipe(int *pd)
 {
-
+  int tfae, new_ph_pag;
   if(list_empty(&tfafreequeue)) return -EMFILE;
-  if(list_empty(&(current()->tcfreequeue))) return -EBADFD ;
-  int new_ph_pag=alloc_frame();
-  if (new_ph_pag!=-1) {
-    pd[0] = 1;
-    pd[1] = 2;
+  else tfae = get_free_tfae();
+
+  if(list_empty(&(current()->tcfreequeue))) {
+    //liberar TFA
+    free_tfae(tfae);
+    return -EBADFD ;
   }
   else {
-    return -EAGAIN;
-  }
+    pd[0] = get_free_tce(current());
+    if(list_empty(&(current()->tcfreequeue))) {
+      free_tce(pd[0]);
+      free_tfae(tfae);
+    }
+    else {
+      pd[1] = get_free_tce(current());
+      new_ph_pag=alloc_frame();
+      if (new_ph_pag == -1) {
+        free_tce(pd[0]);
+        free_tce(pd[1]);
+        free_tfae(tfae);
+      }
+      else {
+        int sem_id = get_free_sem();
+        if(sem == -1) {
+          free_tce(pd[0]);
+          free_tce(pd[1]);
+          free_tfae(tfae);
+          free_frame(new_ph_pag);
+        }
+        else {
+          //todo OK
+          page_table_entry *current_PT = get_PT(current());
+          //luego en fork mirar
+          int num_pipes = current()->num_pipes;
+          int pos = PAG_LOG_INIT_DATA+NUM_PAG_DATA;
+          set_ss_pag(current_PT,pos+num_pipes,new_ph_pag);
 
+          tfa_array[tfae].buffer_read = (pos+num_pipes)*PAGE_SIZE;
+          tfa_array[tfae].buffer_write = (pos+num_pipes)*PAGE_SIZE;
+          tfa_array[tfae].bytes = 0;
+          tfa_array[tfae].nrefs_read++;
+          tfa_array[tfae].nrefs_write++;
+          tfa_array[tfae].semaforo = sem[sem_id];
+
+          current()->tc_array[pd[0]]->tfa_entry = &(tfa_array[tfae]);
+          current()->tc_array[pd[1]]->tfa_entry = &(tfa_array[tfae]);
+          current()->num_pipes++;
+        }
+      }
+    }
+  }
   return 0;
 }
 

@@ -69,3 +69,8 @@ int sem_destroy (int n_sem) {
   list_add_tail(&sem[n_sem].list,&freesem_queue);
   return 0;
 }
+
+int free_sem(int n_sem) {
+  list_add_tail(&sem[n_sem].list,&freesem_queue);
+  return 0;
+}

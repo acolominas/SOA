@@ -27,6 +27,7 @@ struct task_struct {
   int total_quantum;		/* Total quantum of the process */
   struct stats p_stats;		/* Process stats */
   struct list_head tcfreequeue;
+  int num_pipes;
   tabla_canales_entry * tc_array[NUM_CANALES];
 };
 
