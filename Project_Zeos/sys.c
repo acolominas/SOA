@@ -247,55 +247,57 @@ int sys_get_stats(int pid, struct stats *st)
 
 int sys_pipe(int *pd)
 {
-  int tfae, new_ph_pag;
-  if(list_empty(&tfafreequeue)) return -EMFILE;
-  else tfae = get_free_tfae();
-
-  if(list_empty(&(current()->tcfreequeue))) {
-    //liberar TFA
-    free_tfae(tfae);
-    return -EBADFD ;
-  }
-  else {
-    pd[0] = get_free_tce(current());
-    if(list_empty(&(current()->tcfreequeue))) {
-      free_tce(pd[0]);
+  int tfae, new_ph_pag,pd_0,pd_1,sem_id;
+  tfae = get_free_tfae();
+  if (tfae == -1 ) return -EMFILE;
+  else  {
+    pd_0 = get_free_tce(current());
+    if(pd_0 == -1) {
       free_tfae(tfae);
+      return -EBADFD ;
     }
     else {
-      pd[1] = get_free_tce(current());
-      new_ph_pag=alloc_frame();
-      if (new_ph_pag == -1) {
-        free_tce(pd[0]);
-        free_tce(pd[1]);
+      pd_1 = get_free_tce(current());
+      if (pd_1 == -1) {
+        free_tce(pd_0);
         free_tfae(tfae);
       }
       else {
-        int sem_id = get_free_sem();
-        if(sem == -1) {
-          free_tce(pd[0]);
-          free_tce(pd[1]);
+        new_ph_pag=alloc_frame();
+        if (new_ph_pag == -1) {
+          free_tce(pd_0);
+          free_tce(pd_1);
           free_tfae(tfae);
-          free_frame(new_ph_pag);
         }
         else {
-          //todo OK
-          page_table_entry *current_PT = get_PT(current());
-          //luego en fork mirar
-          int num_pipes = current()->num_pipes;
-          int pos = PAG_LOG_INIT_DATA+NUM_PAG_DATA;
-          set_ss_pag(current_PT,pos+num_pipes,new_ph_pag);
+          sem_id = get_free_sem();
+          if(sem_id == -1) {
+            free_tce(pd_0);
+            free_tce(pd_1);
+            free_tfae(tfae);
+            free_frame(new_ph_pag);
+          }
+          else {
+            //todo OK
+            page_table_entry *current_PT = get_PT(current());
+            //luego en fork mirar
+            int num_pipes = current()->num_pipes;
+            int pos = PAG_LOG_INIT_DATA+NUM_PAG_DATA;
+            set_ss_pag(current_PT,pos+num_pipes,new_ph_pag);
 
-          tfa_array[tfae].buffer_read = (pos+num_pipes)*PAGE_SIZE;
-          tfa_array[tfae].buffer_write = (pos+num_pipes)*PAGE_SIZE;
-          tfa_array[tfae].bytes = 0;
-          tfa_array[tfae].nrefs_read++;
-          tfa_array[tfae].nrefs_write++;
-          tfa_array[tfae].semaforo = sem[sem_id];
+            tfa_array[tfae].buffer_read = (pos+num_pipes)*PAGE_SIZE;
+            tfa_array[tfae].buffer_write = (pos+num_pipes)*PAGE_SIZE;
+            tfa_array[tfae].bytes = 0;
+            tfa_array[tfae].nrefs_read++;
+            tfa_array[tfae].nrefs_write++;
+            tfa_array[tfae].semaforo = sem[sem_id];
 
-          current()->tc_array[pd[0]]->tfa_entry = &(tfa_array[tfae]);
-          current()->tc_array[pd[1]]->tfa_entry = &(tfa_array[tfae]);
-          current()->num_pipes++;
+            current()->tc_array[pd[0]]->tfa_entry = &(tfa_array[tfae]);
+            current()->tc_array[pd[1]]->tfa_entry = &(tfa_array[tfae]);
+            current()->num_pipes++;
+            pd[0] = pd_0;
+            pd[1] = pd_1;
+          }
         }
       }
     }
