@@ -63,9 +63,6 @@ void init_tc(struct task_struct *t)
   {
     t->tc_array[i].pos = i;
     list_add_tail(&t->tc_array[i].list, &(t->tcfreequeue));
-    //tabla_canales_entry * tce = t->tc_array[i];
-    //tce->pos = i;
-    //list_add_tail(&tce->list, &(t->tcfreequeue));
   }
 }
 
@@ -77,6 +74,30 @@ int get_free_tce(struct task_struct * current) {
     list_del(tce);
    }
   return a;
+}
+
+int get_2_free_tce(int *tce_id,struct task_struct * current) {
+  tce_id[0] = -1;
+  tce_id[1] = -1;
+  struct list_head *tce;
+  if (!list_empty(&current->tcfreequeue)) {
+    tce = list_first(&current->tcfreequeue);
+    tce_id[0] = get_id(tce);
+    list_del(tce);
+    if (!list_empty(&current->tcfreequeue)) {
+      tce = list_first(&current->tcfreequeue);
+      tce_id[1] = get_id(tce);
+      list_del(tce);
+    }
+    else {
+      list_add_tail(tce,&(current->tcfreequeue));
+      return -1;
+    }
+  }
+  else {
+    return -1;
+  }
+ return 0;
 }
 
 int free_tce(int tce)

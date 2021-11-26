@@ -19,6 +19,8 @@ int free_tfae(int tfae);
 
 void init_tc(struct task_struct *t);
 
+int get_2_free_tce(int *tce_id,struct task_struct * current);
+
 int get_free_tce(struct task_struct * current);
 
 int free_tce(int tce);
