@@ -38,6 +38,8 @@ int get_free_tfae() {
 int free_tfae(int tfae)
 {
   if (tfae < 0 || tfae>= NUM_FICHEROS_ABIERTOS) return -1;
+  tfa_array[tfae].nrefs_read = 0;
+  tfa_array[tfae].nrefs_write = 0;
   list_add_tail(&tfa_array[tfae].list,&tfafreequeue);
   return 0;
 }
@@ -49,22 +51,21 @@ void init_tc(struct task_struct *t)
   int i;
   INIT_LIST_HEAD(&(t->tcfreequeue));
 
+  //CANALES DEFAULT
   tfa_array[0].nrefs_write = 1;
   tfa_array[0].nrefs_read = 1;
-  tabla_canales_entry * tce_0 = &(t->tc_array[0]); //CANAL LECTURA  DEFAULT
-  tabla_canales_entry * tce_1 = &(t->tc_array[1]); //CANAL ECRITURA DEFAULT
-  tce_0->pos = 0;
-  tce_0->tfa_entry = &(tfa_array[0]);
-  tce_1->pos = 1;
-  tce_1->tfa_entry = &(tfa_array[0]);
+  t->tc_array[0].pos = 0;
+  t->tc_array[1].pos = 1;
+  t->tc_array[0].tfa_entry = (tabla_ficheros_abiertos_entry*) &tfa_array[0];
+  t->tc_array[1].tfa_entry = (tabla_ficheros_abiertos_entry*) &tfa_array[0];
 
   for (i=2; i<NUM_CANALES; i++)
   {
-    //t->tc_array[i]->pos = i;
-    //list_add_tail(&t->tc_array[i]->list, &(t->tcfreequeue));
-    tabla_canales_entry * tce = &(t->tc_array[i]);
-    tce->pos = i;
-    list_add_tail(&tce->list, &(t->tcfreequeue));
+    t->tc_array[i].pos = i;
+    list_add_tail(&t->tc_array[i].list, &(t->tcfreequeue));
+    //tabla_canales_entry * tce = t->tc_array[i];
+    //tce->pos = i;
+    //list_add_tail(&tce->list, &(t->tcfreequeue));
   }
 }
 
@@ -81,6 +82,6 @@ int get_free_tce(struct task_struct * current) {
 int free_tce(int tce)
 {
   if (tce < 0 || tce >= NUM_CANALES) return -1;
-  list_add_tail(&current()->tc_array[tce]->list,&(current()->tcfreequeue));
+  list_add_tail(&current()->tc_array[tce].list,&(current()->tcfreequeue));
   return 0;
 }

@@ -254,20 +254,22 @@ int sys_pipe(int *pd)
     pd_0 = get_free_tce(current());
     if(pd_0 == -1) {
       free_tfae(tfae);
-      return -EBADFD ;
+      return -EBADFD;
     }
     else {
       pd_1 = get_free_tce(current());
       if (pd_1 == -1) {
         free_tce(pd_0);
         free_tfae(tfae);
-      }
-      else {
+        return -EBADFD;
+     }
+     else {
         new_ph_pag=alloc_frame();
         if (new_ph_pag == -1) {
           free_tce(pd_0);
           free_tce(pd_1);
           free_tfae(tfae);
+          return -EBADFD;
         }
         else {
           sem_id = get_free_sem();
@@ -276,9 +278,10 @@ int sys_pipe(int *pd)
             free_tce(pd_1);
             free_tfae(tfae);
             free_frame(new_ph_pag);
+            return -EBADFD;
           }
           else {
-            //todo OK
+
             page_table_entry *current_PT = get_PT(current());
             //luego en fork mirar
             int num_pipes = current()->num_pipes;
@@ -292,8 +295,8 @@ int sys_pipe(int *pd)
             tfa_array[tfae].nrefs_write++;
             tfa_array[tfae].semaforo = sem[sem_id];
 
-            current()->tc_array[pd[0]]->tfa_entry = &(tfa_array[tfae]);
-            current()->tc_array[pd[1]]->tfa_entry = &(tfa_array[tfae]);
+            current()->tc_array[pd_0].tfa_entry = (tabla_ficheros_abiertos_entry*) &tfa_array[tfae];
+            current()->tc_array[pd_1].tfa_entry = (tabla_ficheros_abiertos_entry*) &tfa_array[tfae];
             current()->num_pipes++;
             pd[0] = pd_0;
             pd[1] = pd_1;

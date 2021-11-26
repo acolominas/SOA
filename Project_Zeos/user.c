@@ -9,16 +9,21 @@ int __attribute__ ((__section__(".text.main")))
 {
     /* Next line, tries to move value 0 to CR3 register. This register is a privileged one, and so it will raise an exception */
      /* __asm__ __volatile__ ("mov %0, %%cr3"::"r" (0) ); */
-  /*
+
   int pd[2];
 
   int res = pipe(pd);
 
-  char buff[4];
+  if (res == 0) {
+    char buff[4];
 
-  itoa(pd[0],buff);
+    itoa(pd[0],buff);
 
-  write(1,buff,strlen(buff)); */
+    write(1,buff,strlen(buff));
 
+    itoa(pd[1],buff);
+
+    write(1,buff,strlen(buff));
+  }
   while(1) { }
 }

@@ -7,6 +7,7 @@
 
 int get_id(struct list_head *t);
 
+//Tabla Ficheros Abiertos
 
 void init_tfa();
 
