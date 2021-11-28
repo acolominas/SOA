@@ -90,19 +90,19 @@ int get_2_free_tce(int *tce_id) {
   if (!list_empty(&(t->tcfreequeue))) {
     tce = list_first(&(t->tcfreequeue));
     tce_id[0] = get_id(tce);
-    //list_del(tce);
-    //if (!list_empty(&t->tcfreequeue)) {
-    //  tce = list_first(&t->tcfreequeue);
-    //  tce_id[1] = get_id(tce);
-    //  list_del(tce);
-    //}
-    //else {
-    //  list_add_tail(tce,&(t->tcfreequeue));
-    //  return -1;
-    //}
-  //}
-  //else {
-  //  return -1;
+    list_del(tce);
+    if (!list_empty(&t->tcfreequeue)) {
+      tce = list_first(&t->tcfreequeue);
+      tce_id[1] = get_id(tce);
+      list_del(tce);
+    }
+    else {
+      list_add_tail(tce,&(t->tcfreequeue));
+      return -1;
+    }
+  }
+  else {
+    return -1;
   }
  return 0;
 }

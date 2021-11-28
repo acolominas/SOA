@@ -249,12 +249,10 @@ int sys_get_stats(int pid, struct stats *st)
 int sys_pipe(int *pd)
 {
   int tfae,new_ph_pag,sem_id;
-  if(is_tfae_empty() == 1 || are_2_free_tce() == 0 || is_sem_empty() == 1  ) return -EMFILE;
+  if(is_tfae_empty() || !are_2_free_tce() || is_sem_empty()) return -EMFILE;
   else {
-
     new_ph_pag=alloc_frame();
     if (new_ph_pag != -1) {
-
       tfae = get_free_tfae();
       get_2_free_tce(pd);
       sem_id = get_free_sem();
@@ -264,7 +262,12 @@ int sys_pipe(int *pd)
       int num_pipes = current()->num_pipes;
       int pos = PAG_LOG_INIT_DATA+NUM_PAG_DATA;
       set_ss_pag(current_PT,pos+num_pipes,new_ph_pag);
-
+      set_cr3(get_DIR(current()));
+      //PREGUNTAR AL PROFE:
+      //DONDE UBICAMOS LA PAGINA PARA LA PIPE
+      //PCB PROCESO:
+      //tabla_canales_entry tc_array[NUM_CANALES];
+      //tabla_canales_entry * tc_array[NUM_CANALES];
       tfa_array[tfae].buffer_read = (pos+num_pipes)*PAGE_SIZE;
       tfa_array[tfae].buffer_write = (pos+num_pipes)*PAGE_SIZE;
       tfa_array[tfae].bytes = 0;
@@ -275,12 +278,10 @@ int sys_pipe(int *pd)
       current()->tc_array[pd[0]].tfa_entry = (tabla_ficheros_abiertos_entry*) &tfa_array[tfae];
       current()->tc_array[pd[1]].tfa_entry = (tabla_ficheros_abiertos_entry*) &tfa_array[tfae];
       current()->num_pipes++;
-
     }
     else {
-      return -EMFILE;
+      return -ENOMEM;
     }
-
   }
   return 0;
 }
