@@ -9,6 +9,7 @@
 #include <types.h>
 #include <mm_address.h>
 #include <stats.h>
+#include <fs.h>
 
 
 #define NR_TASKS      10
@@ -54,8 +55,6 @@ void init_task1(void);
 void init_idle(void);
 
 void init_tfa(void);
-
-void init_tc(struct task_struct *t);
 
 void init_sched(void);
 

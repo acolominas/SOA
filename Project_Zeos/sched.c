@@ -216,10 +216,7 @@ void init_task1(void)
 
   init_tc(c);
   c->num_pipes = 0;
-  /*c->tc_array[0]->tfa_entry = &(tfa_array[0]);
-  c->tc_array[0]->pos = 0;
-  c->tc_array[1]->tfa_entry = &(tfa_array[0]);
-  c->tc_array[1]->pos = 1;*/
+
   set_user_pages(c);
 
   tss.esp0=(DWord)&(uc->stack[KERNEL_STACK_SIZE]);

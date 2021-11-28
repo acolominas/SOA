@@ -14,3 +14,5 @@ int get_free_sem();
 int free_sem(int n_sem);
 
 int get_sem_id(struct list_head *sem);
+
+int is_sem_empty();

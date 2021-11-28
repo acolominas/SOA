@@ -1,6 +1,6 @@
 #include <list.h>
 
-/* 
+/*
  * Initializes an empty list.
  */
 void INIT_LIST_HEAD(struct list_head *list)
@@ -90,6 +90,17 @@ int list_is_last(const struct list_head *list,
 }
 
 /**
+ * list_empty - tests whether a list there are 2 at least
+ * @head: the list to test.
+ */
+int list_at_least_2(const struct list_head *head)
+{
+  //return list_is_last(list_first(head),head);
+	return (head)->next->next != head;
+}
+
+
+/**
  * list_empty - tests whether a list is empty
  * @head: the list to test.
  */
@@ -97,4 +108,3 @@ int list_empty(const struct list_head *head)
 {
 	return head->next == head;
 }
-

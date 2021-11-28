@@ -15,12 +15,16 @@ int get_free_tfae();
 
 int free_tfae(int tfae);
 
+int is_tfae_empty();
+
 //Tabla Canales
 
-void init_tc(struct task_struct *t);
+void init_tc();
 
-int get_2_free_tce(int *tce_id,struct task_struct * current);
+int get_2_free_tce(int *tce_id);
 
-int get_free_tce(struct task_struct * current);
+int get_free_tce();
 
 int free_tce(int tce);
+
+int are_2_free_tce();

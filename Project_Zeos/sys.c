@@ -245,56 +245,43 @@ int sys_get_stats(int pid, struct stats *st)
   return -ESRCH; /*ESRCH */
 }
 
+
 int sys_pipe(int *pd)
 {
-  int tfae,new_ph_pag,sem_id,res;
-  tfae = get_free_tfae();
-  if (tfae == -1 ) return -EMFILE;
-  else  {
-    res = get_2_free_tce(pd,current());
-    if(res == -1) {
-      free_tfae(tfae);
-      return -EBADFD;
+  int tfae,new_ph_pag,sem_id;
+  if(is_tfae_empty() == 1 || are_2_free_tce() == 0 || is_sem_empty() == 1  ) return -EMFILE;
+  else {
+
+    new_ph_pag=alloc_frame();
+    if (new_ph_pag != -1) {
+
+      tfae = get_free_tfae();
+      get_2_free_tce(pd);
+      sem_id = get_free_sem();
+
+      page_table_entry *current_PT = get_PT(current());
+      //luego en fork mirar
+      int num_pipes = current()->num_pipes;
+      int pos = PAG_LOG_INIT_DATA+NUM_PAG_DATA;
+      set_ss_pag(current_PT,pos+num_pipes,new_ph_pag);
+
+      tfa_array[tfae].buffer_read = (pos+num_pipes)*PAGE_SIZE;
+      tfa_array[tfae].buffer_write = (pos+num_pipes)*PAGE_SIZE;
+      tfa_array[tfae].bytes = 0;
+      tfa_array[tfae].nrefs_read++;
+      tfa_array[tfae].nrefs_write++;
+      tfa_array[tfae].semaforo = sem[sem_id];
+
+      current()->tc_array[pd[0]].tfa_entry = (tabla_ficheros_abiertos_entry*) &tfa_array[tfae];
+      current()->tc_array[pd[1]].tfa_entry = (tabla_ficheros_abiertos_entry*) &tfa_array[tfae];
+      current()->num_pipes++;
+
     }
     else {
-        new_ph_pag=alloc_frame();
-        if (new_ph_pag == -1) {
-          free_tce(pd[0]);
-          free_tce(pd[1]);
-          free_tfae(tfae);
-          return -EBADFD;
-        }
-        else {
-          sem_id = get_free_sem();
-          if(sem_id == -1) {
-            free_tce(pd[0]);
-            free_tce(pd[1]);
-            free_tfae(tfae);
-            free_frame(new_ph_pag);
-            return -EBADFD;
-          }
-          else {
-
-            page_table_entry *current_PT = get_PT(current());
-            //luego en fork mirar
-            int num_pipes = current()->num_pipes;
-            int pos = PAG_LOG_INIT_DATA+NUM_PAG_DATA;
-            set_ss_pag(current_PT,pos+num_pipes,new_ph_pag);
-
-            tfa_array[tfae].buffer_read = (pos+num_pipes)*PAGE_SIZE;
-            tfa_array[tfae].buffer_write = (pos+num_pipes)*PAGE_SIZE;
-            tfa_array[tfae].bytes = 0;
-            tfa_array[tfae].nrefs_read++;
-            tfa_array[tfae].nrefs_write++;
-            tfa_array[tfae].semaforo = sem[sem_id];
-
-            current()->tc_array[pd[0]].tfa_entry = (tabla_ficheros_abiertos_entry*) &tfa_array[tfae];
-            current()->tc_array[pd[1]].tfa_entry = (tabla_ficheros_abiertos_entry*) &tfa_array[tfae];
-            current()->num_pipes++;
-          }
-        }
-      }
+      return -EMFILE;
     }
+
+  }
   return 0;
 }
 

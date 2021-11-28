@@ -35,6 +35,11 @@ int get_free_tfae() {
   return a;
 }
 
+int is_tfae_empty()
+{
+  return list_empty(&tfafreequeue);
+}
+
 int free_tfae(int tfae)
 {
   if (tfae < 0 || tfae>= NUM_FICHEROS_ABIERTOS) return -1;
@@ -66,38 +71,46 @@ void init_tc(struct task_struct *t)
   }
 }
 
-int get_free_tce(struct task_struct * current) {
+int get_free_tce() {
    int a = -1;
-   if (!list_empty(&current->tcfreequeue)) {
-    struct list_head *tce = list_first(&current->tcfreequeue);
+   struct task_struct * t = current();
+   if (!list_empty(&t->tcfreequeue)) {
+    struct list_head *tce = list_first(&t->tcfreequeue);
     a = get_id(tce);
     list_del(tce);
    }
   return a;
 }
 
-int get_2_free_tce(int *tce_id,struct task_struct * current) {
+int get_2_free_tce(int *tce_id) {
   tce_id[0] = -1;
   tce_id[1] = -1;
+  struct task_struct *t = current();
   struct list_head *tce;
-  if (!list_empty(&current->tcfreequeue)) {
-    tce = list_first(&current->tcfreequeue);
+  if (!list_empty(&(t->tcfreequeue))) {
+    tce = list_first(&(t->tcfreequeue));
     tce_id[0] = get_id(tce);
-    list_del(tce);
-    if (!list_empty(&current->tcfreequeue)) {
-      tce = list_first(&current->tcfreequeue);
-      tce_id[1] = get_id(tce);
-      list_del(tce);
-    }
-    else {
-      list_add_tail(tce,&(current->tcfreequeue));
-      return -1;
-    }
-  }
-  else {
-    return -1;
+    //list_del(tce);
+    //if (!list_empty(&t->tcfreequeue)) {
+    //  tce = list_first(&t->tcfreequeue);
+    //  tce_id[1] = get_id(tce);
+    //  list_del(tce);
+    //}
+    //else {
+    //  list_add_tail(tce,&(t->tcfreequeue));
+    //  return -1;
+    //}
+  //}
+  //else {
+  //  return -1;
   }
  return 0;
+}
+
+int are_2_free_tce()
+{
+  struct task_struct * t = current();
+  return list_at_least_2(&t->tcfreequeue);
 }
 
 int free_tce(int tce)

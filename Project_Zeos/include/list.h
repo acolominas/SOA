@@ -33,7 +33,7 @@ struct list_head {
  *   struct list_head * e = list_first( &list );
  *
  *   // Remove the selected element from the list
- *   list_del( e ); 
+ *   list_del( e );
  *
  *   // Get the container of this list element
  *   struct element * realelement = list_entry( e, struct element, anchor );
@@ -90,6 +90,12 @@ void list_del(struct list_head *entry);
  */
 int list_is_last(const struct list_head *list,
 				const struct list_head *head);
+
+/**
+ * list_empty - tests whether a list there are 2 ENTRY at least
+ * @head: the list to test.
+ */
+int list_at_least_2(const struct list_head *head);
 
 /**
  * list_empty - tests whether a list is empty
