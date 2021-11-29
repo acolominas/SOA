@@ -11,6 +11,7 @@ int get_id(struct list_head *t)
   return *((int*)((int)t+sizeof(struct list_head)));
 }
 
+
 //Tabla Ficheros Abiertos
 void init_tfa()
 {
@@ -61,6 +62,8 @@ void init_tc(struct task_struct *t)
   tfa_array[0].nrefs_read = 1;
   t->tc_array[0].pos = 0;
   t->tc_array[1].pos = 1;
+  t->tc_array[0].le = LECTURA;
+  t->tc_array[1].le = ESCRIPTURA;
   t->tc_array[0].tfa_entry = (tabla_ficheros_abiertos_entry*) &tfa_array[0];
   t->tc_array[1].tfa_entry = (tabla_ficheros_abiertos_entry*) &tfa_array[0];
 
@@ -117,5 +120,21 @@ int free_tce(int tce)
 {
   if (tce < 0 || tce >= NUM_CANALES) return -1;
   list_add_tail(&current()->tc_array[tce].list,&(current()->tcfreequeue));
+  return 0;
+}
+
+int check_fd_old(int fd, int permissions)
+{
+  if (fd!=1) return -EBADF;
+  if (permissions!=ESCRIPTURA) return -EACCES;
+  return 0;
+}
+
+int check_fd(int fd, int permissions)
+{
+  if (fd < 0 || fd >= NUM_CANALES) return -EBADF;
+  if (current()->tc_array[fd].le != permissions) return -EACCES;
+  if (permissions == LECTURA && current()->tc_array[fd].tfa_entry->nrefs_write == 0) return -EBADF;
+  if (permissions == ESCRIPTURA && current()->tc_array[fd].tfa_entry->nrefs_read == 0) return -EBADF;
   return 0;
 }

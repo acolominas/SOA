@@ -215,7 +215,7 @@ void init_task1(void)
   allocate_DIR(c);
 
   init_tc(c);
-  c->num_pipes = 0;
+  
 
   set_user_pages(c);
 

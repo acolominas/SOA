@@ -19,9 +19,6 @@
 
 #include <fs.h>
 
-#define LECTURA 0
-#define ESCRIPTURA 1
-
 extern struct list_head tfafreequeue;
 
 extern tabla_ficheros_abiertos_entry tfa_array[NUM_FICHEROS_ABIERTOS];
@@ -30,12 +27,6 @@ extern struct sem_t sem[NR_SEM];
 
 void * get_ebp();
 
-int check_fd(int fd, int permissions)
-{
-  if (fd!=1) return -EBADF;
-  if (permissions!=ESCRIPTURA) return -EACCES;
-  return 0;
-}
 
 void user_to_system(void)
 {
@@ -165,7 +156,7 @@ char localbuffer [TAM_BUFFER];
 int bytes_left;
 int ret;
 
-	if ((ret = check_fd(fd, ESCRIPTURA)))
+	if ((ret = check_fd_old(fd, ESCRIPTURA)))
 		return ret;
 	if (nbytes < 0)
 		return -EINVAL;
@@ -255,29 +246,31 @@ int sys_pipe(int *pd)
     if (new_ph_pag != -1) {
       tfae = get_free_tfae();
       get_2_free_tce(pd);
+
       sem_id = get_free_sem();
 
       page_table_entry *current_PT = get_PT(current());
-      //luego en fork mirar
-      int num_pipes = current()->num_pipes;
-      int pos = PAG_LOG_INIT_DATA+NUM_PAG_DATA;
-      set_ss_pag(current_PT,pos+num_pipes,new_ph_pag);
+
+      int i = TOTAL_PAGES-1;
+      while (current_PT[i].bits.present == 1) --i; // i sera la pagina que estará libre
+      current_PT[i].bits.user = 0; // solo accesible en privilegios nivel 0
+
+      set_ss_pag(current_PT,i,new_ph_pag);
       set_cr3(get_DIR(current()));
-      //PREGUNTAR AL PROFE:
-      //DONDE UBICAMOS LA PAGINA PARA LA PIPE
-      //PCB PROCESO:
-      //tabla_canales_entry tc_array[NUM_CANALES];
-      //tabla_canales_entry * tc_array[NUM_CANALES];
-      tfa_array[tfae].buffer_read = (pos+num_pipes)*PAGE_SIZE;
-      tfa_array[tfae].buffer_write = (pos+num_pipes)*PAGE_SIZE;
+
+      tfa_array[tfae].buffer_read = i*PAGE_SIZE;
+      tfa_array[tfae].buffer_write = i*PAGE_SIZE;
       tfa_array[tfae].bytes = 0;
       tfa_array[tfae].nrefs_read++;
       tfa_array[tfae].nrefs_write++;
-      tfa_array[tfae].semaforo = sem[sem_id];
+      //tfa_array[tfae].semaforo = sem[sem_id];
+      tfa_array[tfae].sem_id = sem_id;
 
+      current()->tc_array[pd[0]].le = LECTURA;
+      current()->tc_array[pd[1]].le = ESCRIPTURA;
       current()->tc_array[pd[0]].tfa_entry = (tabla_ficheros_abiertos_entry*) &tfa_array[tfae];
       current()->tc_array[pd[1]].tfa_entry = (tabla_ficheros_abiertos_entry*) &tfa_array[tfae];
-      current()->num_pipes++;
+
     }
     else {
       return -ENOMEM;
@@ -286,9 +279,33 @@ int sys_pipe(int *pd)
   return 0;
 }
 
-int read(int fd, void *buf, int size)
+int sys_read(int fd, void *buf, int size)
 {
-  return 0;
+  int ret;
+  if ((ret = check_fd(fd, LECTURA))) return ret;
+
+  //puntero a la posición donde empezar a leer
+  int pos_read = current()->tc_array[fd].tfa_entry->buffer_read;
+  // #bits que quedan para leer
+  int bytes_left = current()->tc_array[fd].tfa_entry->bytes;
+
+  //si el buffer de lectura esta vacio, nos bloqueamos
+  if (current()->tc_array[fd].tfa_entry->bytes == 0) {
+    int sem_id = current()->tc_array[fd].tfa_entry->sem_id;
+    sem_init(sem_id,1);
+    sem_wait(sem_id);
+  }
+  bytes_left = size;
+  while(bytes_left > 0 && size > buf) {
+    copy_from_user(pos_read,buf,size);
+    bytes_left -= size;
+    pos_read += size;
+    buf += size;
+  }
+
+  current()->tc_array[fd].tfa_entry->buffer_read = pos_read;
+  current()->tc_array[fd].tfa_entry->bytes = 0;
+
 }
 
 int close(int fd)
