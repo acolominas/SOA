@@ -282,6 +282,10 @@ int sys_pipe(int *pd)
 int sys_read(int fd, void *buf, int size)
 {
   int ret;
+  //comprobamos que el canal esté ok:
+  //es de LECTURA
+  //hay escritores
+  //int fd ok
   if ((ret = check_fd(fd, LECTURA))) return ret;
 
   //puntero a la posición donde empezar a leer
@@ -289,12 +293,29 @@ int sys_read(int fd, void *buf, int size)
   // #bits que quedan para leer
   int bytes_left = current()->tc_array[fd].tfa_entry->bytes;
 
-  //si el buffer de lectura esta vacio, nos bloqueamos
-  if (current()->tc_array[fd].tfa_entry->bytes == 0) {
-    int sem_id = current()->tc_array[fd].tfa_entry->sem_id;
-    sem_init(sem_id,1);
-    sem_wait(sem_id);
+  //mientras haya escritores....
+  while(current()->tc_array[fd].tfa_entry->nrefs_write > 0) {
+    if (bytes_left >= size) {
+      copy_from_user(pos_read,buf,size);
+      bytes_left -= size;
+      pos_read += size;
+      buf += size;
+    }
+    else if (bytes_left < size) {
+      copy_from_user(pos_read,buf,bytes_left);
+      bytes_left = 0;
+      pos_read += bytes_left;
+      buf += bytes_left;
+    }
+    else if (bytes_left == 0) {
+      //si el buffer de lectura esta vacio, nos bloqueamos
+      int sem_id = current()->tc_array[fd].tfa_entry->sem_id;
+      sem_init(sem_id,1);
+      sem_wait(sem_id);
+    }
   }
+  return 0;
+  /*
   bytes_left = size;
   while(bytes_left > 0 && size > buf) {
     copy_from_user(pos_read,buf,size);
@@ -305,7 +326,7 @@ int sys_read(int fd, void *buf, int size)
 
   current()->tc_array[fd].tfa_entry->buffer_read = pos_read;
   current()->tc_array[fd].tfa_entry->bytes = 0;
-
+  */
 }
 
 int close(int fd)
