@@ -154,7 +154,7 @@ int sys_fork(void)
 int sys_write(int fd, char *buffer, int nbytes) {
     char localbuffer [TAM_BUFFER];
     int bytes_left;
-  	if ((ret = check_fd_old(fd, ESCRIPTURA)))
+  	if ((ret = check_fd(fd, ESCRIPTURA)))
   		return ret;
   	if (nbytes < 0)
   		return -EINVAL;
