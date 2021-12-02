@@ -135,6 +135,6 @@ int check_fd(int fd, int permissions)
   if (fd < 0 || fd >= NUM_CANALES) return -EBADF;
   if (current()->tc_array[fd].le != permissions) return -EACCES;
   if (permissions == LECTURA && current()->tc_array[fd].tfa_entry->nrefs_write == 0) return -EBADF;
-  if (permissions == ESCRIPTURA && current()->tc_array[fd].tfa_entry->nrefs_read == 0) return -EBADF;
+  if (permissions == ESCRIPTURA && current()->tc_array[fd].tfa_entry->nrefs_read == 0) return -EPIPE;
   return 0;
 }

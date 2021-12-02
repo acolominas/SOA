@@ -152,30 +152,37 @@ int sys_fork(void)
 #define TAM_BUFFER 512
 
 int sys_write(int fd, char *buffer, int nbytes) {
-char localbuffer [TAM_BUFFER];
-int bytes_left;
-int ret;
+    char localbuffer [TAM_BUFFER];
+    int bytes_left;
+  	if ((ret = check_fd_old(fd, ESCRIPTURA)))
+  		return ret;
+  	if (nbytes < 0)
+  		return -EINVAL;
+  	if (!access_ok(VERIFY_READ, buffer, nbytes))
+  		return -EFAULT;
 
-	if ((ret = check_fd_old(fd, ESCRIPTURA)))
-		return ret;
-	if (nbytes < 0)
-		return -EINVAL;
-	if (!access_ok(VERIFY_READ, buffer, nbytes))
-		return -EFAULT;
-
-	bytes_left = nbytes;
-	while (bytes_left > TAM_BUFFER) {
-		copy_from_user(buffer, localbuffer, TAM_BUFFER);
-		ret = sys_write_console(localbuffer, TAM_BUFFER);
-		bytes_left-=ret;
-		buffer+=ret;
-	}
-	if (bytes_left > 0) {
-		copy_from_user(buffer, localbuffer,bytes_left);
-		ret = sys_write_console(localbuffer, bytes_left);
-		bytes_left-=ret;
-	}
-	return (nbytes-bytes_left);
+    if (fd == 1) {
+    	bytes_left = nbytes;
+    	while (bytes_left > TAM_BUFFER) {
+    		copy_from_user(buffer, localbuffer, TAM_BUFFER);
+    		ret = sys_write_console(localbuffer, TAM_BUFFER);
+    		bytes_left-=ret;
+    		buffer+=ret;
+    	}
+    	if (bytes_left > 0) {
+    		copy_from_user(buffer, localbuffer,bytes_left);
+    		ret = sys_write_console(localbuffer, bytes_left);
+    		bytes_left-=ret;
+    	}
+    	return (nbytes-bytes_left);
+    }
+    else {
+      //puntero a la posición donde empezar a leer
+      int pos_write = current()->tc_array[fd].tfa_entry->buffer_write;
+      //bytes que vamos a escribir
+      current()->tc_array[fd].tfa_entry->bytes = nbytes;
+      copy_from_user(buffer,pos_write,nbytes);
+    }
 }
 
 
