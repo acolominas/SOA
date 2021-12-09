@@ -118,7 +118,15 @@ int are_2_free_tce()
 
 int free_tce(int tce)
 {
-  if (tce < 0 || tce >= NUM_CANALES) return -1;
+  if (tce < 0 || tce > NUM_CANALES) return -1;
+  if (current()->tc_array[tce].le == 0) current()->tc_array[tce].tfa_entry->nrefs_read--;
+  if (current()->tc_array[tce].le == 1) current()->tc_array[tce].tfa_entry->nrefs_write--;
+
+  //si no hay canales apuntando a la TFAE, la liberamos tambien.
+  if (current()->tc_array[tce].tfa_entry->nrefs_read == 0 && current()->tc_array[tce].tfa_entry->nrefs_write == 0) {
+    current()->tc_array[tce].tfa_entry = NULL;
+    free_tfae(current()->tc_array[tce].tfa_entry->pos);
+  }
   list_add_tail(&current()->tc_array[tce].list,&(current()->tcfreequeue));
   return 0;
 }
@@ -136,5 +144,5 @@ int check_fd(int fd, int permissions)
   if (current()->tc_array[fd].le != permissions) return -EACCES;
   if (permissions == LECTURA && current()->tc_array[fd].tfa_entry->nrefs_write == 0) return -EBADF;
   if (permissions == ESCRIPTURA && current()->tc_array[fd].tfa_entry->nrefs_read == 0) return -EPIPE;
-  return 0;
+  return 1;
 }

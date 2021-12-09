@@ -25,7 +25,7 @@ int get_sem_id(struct list_head *sem)
 }
 
 int sem_init (int n_sem, unsigned int value) {
-  if (n_sem < 0 || n_sem >= NR_SEM) return -1;
+  if (n_sem < 0 || n_sem > NR_SEM) return -1;
   if (value < 0) return -1;
   if (sem[n_sem].count != NULL) return -1;
   sem[n_sem].count = value;
@@ -35,7 +35,7 @@ int sem_init (int n_sem, unsigned int value) {
 }
 
 int sem_wait (int n_sem) {
-  if (n_sem < 0 || n_sem >= NR_SEM) return -1;
+  if (n_sem < 0 || n_sem > NR_SEM) return -1;
   sem[n_sem].count --;
   if (sem[n_sem].count <= 0) {
     list_add_tail(&(current()->list),&sem[n_sem].blocked);
@@ -46,7 +46,7 @@ int sem_wait (int n_sem) {
 }
 
 int sem_signal (int n_sem) {
-  if (n_sem < 0 || n_sem >= NR_SEM) return -1;
+  if (n_sem < 0 || n_sem > NR_SEM) return -1;
   sem[n_sem].count ++;
   if (sem[n_sem].count <= 0) {
     struct list_head *l = list_first(&sem[n_sem].blocked);

@@ -7,6 +7,9 @@
 #define __LIBC_H__
 
 #include <stats.h>
+#include <types.h>
+
+#include <stddef.h>
 
 extern int errno;
 
@@ -30,7 +33,7 @@ int get_stats(int pid, struct stats *st);
 
 int pipe(int *pd);
 
-int read(int fd, void *buf, int size);
+int read(int fd, void *buf, size_t size);
 
 int close(int fd);
 

@@ -18,8 +18,8 @@ ENTRY (sys_call_table)
 	.long sys_yield		//13
 	.long sys_ni_syscall	//14
 	.long sys_pipe	//15
-	.long sys_ni_syscall //16
-	.long sys_ni_syscall	//17
+	.long sys_close //16
+	.long sys_read	//17
 	.long sys_ni_syscall	//18
 	.long sys_ni_syscall	//19
 	.long sys_getpid	//20

@@ -19,6 +19,8 @@
 
 #include <fs.h>
 
+#include <stddef.h>
+
 extern struct list_head tfafreequeue;
 
 extern tabla_ficheros_abiertos_entry tfa_array[NUM_FICHEROS_ABIERTOS];
@@ -154,8 +156,9 @@ int sys_fork(void)
 int sys_write(int fd, char *buffer, int nbytes) {
     char localbuffer [TAM_BUFFER];
     int bytes_left;
-  	if ((ret = check_fd(fd, ESCRIPTURA)))
-  		return ret;
+    int ret;
+  	if ((ret = check_fd(fd, ESCRIPTURA)) <= 0 )
+      return ret;
   	if (nbytes < 0)
   		return -EINVAL;
   	if (!access_ok(VERIFY_READ, buffer, nbytes))
@@ -178,7 +181,7 @@ int sys_write(int fd, char *buffer, int nbytes) {
     }
     else {
       //puntero a la posición donde empezar a leer
-      int pos_write = current()->tc_array[fd].tfa_entry->buffer_write;
+      int *pos_write = current()->tc_array[fd].tfa_entry->buffer_write;
       //bytes que vamos a escribir
       current()->tc_array[fd].tfa_entry->bytes = nbytes;
       copy_from_user(buffer,pos_write,nbytes);
@@ -286,57 +289,59 @@ int sys_pipe(int *pd)
   return 0;
 }
 
-int sys_read(int fd, void *buf, int size)
+int sys_read(int fd, void *buf, size_t size)
 {
-  int ret;
   //comprobamos que el canal esté ok:
   //es de LECTURA
-  //hay escritores
+  //hay escritore
+  /*HAY UN BUFF[64] size 62*/
   //int fd ok
-  if ((ret = check_fd(fd, LECTURA))) return ret;
+
+  //ONLY FOR TEST
+  char buffer[15] = "Esto es un test";
+  current()->tc_array[fd].tfa_entry->nrefs_write = 1;
+  current()->tc_array[fd].tfa_entry->buffer_read = &buffer;
+  current()->tc_array[fd].tfa_entry->bytes = 15;
+
+  int ret;
+  if ((ret = check_fd(fd, LECTURA)) <= 0 ) return ret;
+  if (!access_ok(VERIFY_WRITE, buf, size))
+    return -EFAULT;
 
   //puntero a la posición donde empezar a leer
-  int pos_read = current()->tc_array[fd].tfa_entry->buffer_read;
+  int *pos_read = current()->tc_array[fd].tfa_entry->buffer_read;
   // #bits que quedan para leer
-  int bytes_left = current()->tc_array[fd].tfa_entry->bytes;
+  int * bytes_to_be_readed = &current()->tc_array[fd].tfa_entry->bytes;
+  //int bytes_left = total_bytes;
+  size_t bytes_readed = 0;
 
-  //mientras haya escritores....
-  while(current()->tc_array[fd].tfa_entry->nrefs_write > 0) {
-    if (bytes_left >= size) {
-      copy_from_user(pos_read,buf,size);
-      bytes_left -= size;
-      pos_read += size;
-      buf += size;
+
+  while(*bytes_to_be_readed > 0) {
+    if (*bytes_to_be_readed >= size) {
+        copy_from_user(pos_read,buf,size);
+        *bytes_to_be_readed -= size;
+        bytes_readed += size;
+        *pos_read += size;
     }
-    else if (bytes_left < size) {
-      copy_from_user(pos_read,buf,bytes_left);
-      bytes_left = 0;
-      pos_read += bytes_left;
-      buf += bytes_left;
+    else if (*bytes_to_be_readed < size) {
+        //si queremos leer mas de lo que hay....leemos y bloqueamos
+        copy_from_user(pos_read,buf,*bytes_to_be_readed);
+        *bytes_to_be_readed = 0;
+        bytes_readed += *bytes_to_be_readed;
     }
-    else if (bytes_left == 0) {
-      //si el buffer de lectura esta vacio, nos bloqueamos
-      int sem_id = current()->tc_array[fd].tfa_entry->sem_id;
-      sem_init(sem_id,1);
-      sem_wait(sem_id);
+
+    if (*bytes_to_be_readed == 0) {
+        int sem_id = current()->tc_array[fd].tfa_entry->sem_id;
+        sem_init(sem_id,0);
+        sem_wait(sem_id);
     }
   }
-  return 0;
-  /*
-  bytes_left = size;
-  while(bytes_left > 0 && size > buf) {
-    copy_from_user(pos_read,buf,size);
-    bytes_left -= size;
-    pos_read += size;
-    buf += size;
-  }
-
-  current()->tc_array[fd].tfa_entry->buffer_read = pos_read;
-  current()->tc_array[fd].tfa_entry->bytes = 0;
-  */
+  return bytes_readed;
 }
 
-int close(int fd)
+int sys_close(int fd)
 {
+
+  free_tce(fd);
   return 0;
 }
