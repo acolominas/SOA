@@ -43,7 +43,7 @@ int is_tfae_empty()
 
 int free_tfae(int tfae)
 {
-  if (tfae < 0 || tfae>= NUM_FICHEROS_ABIERTOS) return -1;
+  if (tfae < 0 || tfae > NUM_FICHEROS_ABIERTOS) return -1;
   tfa_array[tfae].nrefs_read = 0;
   tfa_array[tfae].nrefs_write = 0;
   list_add_tail(&tfa_array[tfae].list,&tfafreequeue);
@@ -70,6 +70,7 @@ void init_tc(struct task_struct *t)
   for (i=2; i<NUM_CANALES; i++)
   {
     t->tc_array[i].pos = i;
+    t->tc_array[i].le = -1; // No utilizado.
     list_add_tail(&t->tc_array[i].list, &(t->tcfreequeue));
   }
 }
@@ -121,7 +122,8 @@ int free_tce(int tce)
   if (tce < 0 || tce > NUM_CANALES) return -1;
   if (current()->tc_array[tce].le == 0) current()->tc_array[tce].tfa_entry->nrefs_read--;
   if (current()->tc_array[tce].le == 1) current()->tc_array[tce].tfa_entry->nrefs_write--;
-
+  current()->tc_array[tce].le = -1; // marcamos el canal como no usado
+  
   //si no hay canales apuntando a la TFAE, la liberamos tambien.
   if (current()->tc_array[tce].tfa_entry->nrefs_read == 0 && current()->tc_array[tce].tfa_entry->nrefs_write == 0) {
     current()->tc_array[tce].tfa_entry = NULL;
@@ -131,18 +133,11 @@ int free_tce(int tce)
   return 0;
 }
 
-int check_fd_old(int fd, int permissions)
-{
-  if (fd!=1) return -EBADF;
-  if (permissions!=ESCRIPTURA) return -EACCES;
-  return 0;
-}
-
 int check_fd(int fd, int permissions)
 {
-  if (fd < 0 || fd >= NUM_CANALES) return -EBADF;
+  if (fd < 0 || fd > NUM_CANALES) return -EBADF;
   if (current()->tc_array[fd].le != permissions) return -EACCES;
-  if (permissions == LECTURA && current()->tc_array[fd].tfa_entry->nrefs_write == 0) return -EBADF;
+  if (permissions == LECTURA && current()->tc_array[fd].tfa_entry->nrefs_write == 0) return 0;
   if (permissions == ESCRIPTURA && current()->tc_array[fd].tfa_entry->nrefs_read == 0) return -EPIPE;
   return 1;
 }
