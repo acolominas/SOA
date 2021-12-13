@@ -173,7 +173,8 @@ typedef struct
   int nrefs_read;
   int nrefs_write;
   //struct sem_t semaforo;
-  int sem_id;
+  int sem_id_r;
+  int sem_id_w;
   /*Se bloquea si hay alguien escribiendo y el canal está completo, entonces se bloquea esperando a que el lector lo vaya vacíando. También se bloquea si hay un lector y este está esperando a que el escritor escriba*/
 } tabla_ficheros_abiertos_entry;
 

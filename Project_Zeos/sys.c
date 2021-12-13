@@ -21,6 +21,7 @@
 
 #include <stddef.h>
 
+#define TAM_BUFFER 512
 
 extern struct list_head tfafreequeue;
 
@@ -30,6 +31,24 @@ extern struct sem_t sem[NR_SEM];
 
 void * get_ebp();
 
+
+int sys_write_standard(char *buffer, int nbytes){
+  int bytes_left = nbytes;
+  int ret;
+  char localbuffer [TAM_BUFFER];
+  while (bytes_left > TAM_BUFFER) {
+    copy_from_user(buffer, localbuffer, TAM_BUFFER);
+    ret = sys_write_console(localbuffer, TAM_BUFFER);
+    bytes_left-=ret;
+    buffer+=ret;
+  }
+  if (bytes_left > 0) {
+    copy_from_user(buffer, localbuffer,bytes_left);
+    ret = sys_write_console(localbuffer, bytes_left);
+    bytes_left-=ret;
+  }
+  return (nbytes-bytes_left);
+}
 
 void user_to_system(void)
 {
@@ -152,10 +171,7 @@ int sys_fork(void)
   return uchild->task.PID;
 }
 
-#define TAM_BUFFER 512
-
 int sys_write(int fd, char *buffer, int nbytes) {
-    char localbuffer [TAM_BUFFER];
     int bytes_left;
     int ret;
   	if ((ret = check_fd(fd, ESCRIPTURA)) <= 0) return ret;
@@ -163,51 +179,39 @@ int sys_write(int fd, char *buffer, int nbytes) {
   		return -EINVAL;
   	if (!access_ok(VERIFY_READ, buffer, nbytes))
   		return -EFAULT;
-    bytes_left = nbytes;
-    if (fd == 1) {
-    	while (bytes_left > TAM_BUFFER) {
-    		copy_from_user(buffer, localbuffer, TAM_BUFFER);
-    		ret = sys_write_console(localbuffer, TAM_BUFFER);
-    		bytes_left-=ret;
-    		buffer+=ret;
-    	}
-    	if (bytes_left > 0) {
-    		copy_from_user(buffer, localbuffer,bytes_left);
-    		ret = sys_write_console(localbuffer, bytes_left);
-    		bytes_left-=ret;
-    	}
-    	return (nbytes-bytes_left);
-    }
+
+    if (fd == 1) return sys_write_standard(buffer,nbytes);
     else {
+      bytes_left = nbytes;
       //puntero a la posición donde empezar a leer
       int *pos_write = current()->tc_array[fd].tfa_entry->buffer_write;
       int *bytes = &(current()->tc_array[fd].tfa_entry->bytes);
       int bytes_escritos= 0;
+      int sem_id = current()->tc_array[fd].tfa_entry->sem_id_r;
       //bytes que vamos a escribir
-     while(bytes_left > bytes_escritos) {
+
+      while (bytes_left > bytes_escritos){
+        unblock_waiters(sem_id);
         if(*bytes + bytes_left <= PAGE_SIZE) {
          copy_from_user(buffer,pos_write,bytes_left);
          bytes_escritos += bytes_left;
          bytes_left -= bytes_left;
          buffer += bytes_left;
-         pos_write += bytes_left;
-       }
-       else {
+         pos_write += (bytes_left % PAGE_SIZE);
+         current()->tc_array[fd].tfa_entry->bytes = bytes_escritos;
+        }
+        else {
          int restant = PAGE_SIZE - *bytes;
          copy_from_user(buffer,pos_write,restant);
          bytes_escritos += restant;
          bytes_left -= restant;
          buffer += restant;
-         pos_write += restant;
+         pos_write += (restant % PAGE_SIZE);
+         current()->tc_array[fd].tfa_entry->bytes = bytes_escritos;
          //aun quedan bytes por escribir, se bloquea hasta que el lector lea y consuma bytes suficiente
-         int sem_id = current()->tc_array[fd].tfa_entry->sem_id;
-        sem_init(sem_id,0);
-        sem_wait(sem_id);
-
+         sem_wait(sem_id);
        }
-
      }
-    current()->tc_array[fd].tfa_entry->bytes = bytes_escritos;
     return bytes_escritos;
   }
 }
@@ -278,15 +282,16 @@ int sys_get_stats(int pid, struct stats *st)
 
 int sys_pipe(int *pd)
 {
-  int tfae,new_ph_pag,sem_id;
-  if(is_tfae_empty() || !are_2_free_tce() || is_sem_empty()) return -EMFILE;
+  int tfae,new_ph_pag,sem_id_r,sem_id_w;
+  if(is_tfae_empty() || !are_2_free_tce() || !are_2_free_sem() ) return -EMFILE;
   else {
     new_ph_pag=alloc_frame();
     if (new_ph_pag != -1) {
       tfae = get_free_tfae();
       get_2_free_tce(pd);
 
-      sem_id = get_free_sem();
+      sem_id_r = get_free_sem();
+      sem_id_w = get_free_sem();
 
       page_table_entry *current_PT = get_PT(current());
 
@@ -303,8 +308,11 @@ int sys_pipe(int *pd)
       tfa_array[tfae].nrefs_read++;
       tfa_array[tfae].nrefs_write++;
       //tfa_array[tfae].semaforo = sem[sem_id];
-      tfa_array[tfae].sem_id = sem_id;
+      tfa_array[tfae].sem_id_r = sem_id_r;
+      tfa_array[tfae].sem_id_w = sem_id_w;
 
+      sem_init(sem_id_r,0);
+      sem_init(sem_id_w,0);
       current()->tc_array[pd[0]].le = LECTURA;
       current()->tc_array[pd[1]].le = ESCRIPTURA;
       current()->tc_array[pd[0]].tfa_entry = (tabla_ficheros_abiertos_entry*) &tfa_array[tfae];
@@ -342,32 +350,33 @@ int sys_read(int fd, void *buf, size_t size)
   int total_bytes = current()->tc_array[fd].tfa_entry->bytes;
   int bytes_left = size;
 
+ int sem_id = current()->tc_array[fd].tfa_entry->sem_id_w;
 
   while(bytes_left > 0) {
     if (total_bytes >= bytes_left) {
       copy_from_user(pos_read,buf,bytes_left);
       bytes_left -= bytes_left;
       total_bytes -= bytes_left;
-      pos_read += bytes_left;
+      pos_read += (bytes_left % PAGE_SIZE);
       buf += bytes_left;
+      current()->tc_array[fd].tfa_entry->bytes = total_bytes;
+      unblock_waiters(sem_id);
     }
     else if (total_bytes < bytes_left && total_bytes != 0) {
       copy_from_user(pos_read,buf,total_bytes);
       bytes_left -= total_bytes;
-      pos_read += total_bytes;
+      pos_read += (total_bytes % PAGE_SIZE);
       buf += total_bytes;
       total_bytes = 0;
-      printk("hola");
-
+      current()->tc_array[fd].tfa_entry->bytes = total_bytes;
+      unblock_waiters(sem_id);
     }
     else if (total_bytes == 0 && bytes_left > 0) {
       //si el numero de bytes de la entrada de la tfa apuntada por el canal del proceso es 0
-      int sem_id = current()->tc_array[fd].tfa_entry->sem_id;
-      sem_init(sem_id,0);
       sem_wait(sem_id);
     }
   }
-  current()->tc_array[fd].tfa_entry->bytes = total_bytes;
+
   return (size - bytes_left);
 
 }
