@@ -172,9 +172,8 @@ typedef struct
   int bytes;// el número de bytes disponibles en el buffer.
   int nrefs_read;
   int nrefs_write;
-  //struct sem_t semaforo;
-  int sem_id_r;
-  int sem_id_w;
+  int sem_id_r; //semforo para los readers
+  int sem_id_w; //semaforo para los writers
   /*Se bloquea si hay alguien escribiendo y el canal está completo, entonces se bloquea esperando a que el lector lo vaya vacíando. También se bloquea si hay un lector y este está esperando a que el escritor escriba*/
 } tabla_ficheros_abiertos_entry;
 
