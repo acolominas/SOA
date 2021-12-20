@@ -167,13 +167,14 @@ typedef struct
 {
   struct list_head list; //para tener una lista de las entradas libres en la TFA y no recorrer cada vez el array
   int pos;
-  int *buffer_read;
-  int *buffer_write;
+  char *buffer_read;
+  char *buffer_write;
   int bytes;// el número de bytes disponibles en el buffer.
   int nrefs_read;
   int nrefs_write;
-  int sem_id_r; //semforo para los readers
+  int sem_id_r; //semaforo para los readers
   int sem_id_w; //semaforo para los writers
+  int id_ph_page;
   /*Se bloquea si hay alguien escribiendo y el canal está completo, entonces se bloquea esperando a que el lector lo vaya vacíando. También se bloquea si hay un lector y este está esperando a que el escritor escriba*/
 } tabla_ficheros_abiertos_entry;
 

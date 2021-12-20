@@ -81,13 +81,12 @@ void cpu_idle(void)
 	__asm__ __volatile__("sti": : :"memory");
 
 
-  /*char buff[64];
-  itoa(get_free_sem(),buff);
-  printk(buff);*/
+
 
 	while(1)
 	{
-
+  char buff[64] = "Soy IDLE";
+  printk(buff);
 	;
 	}
 }
@@ -277,6 +276,7 @@ struct task_struct* list_head_to_task_struct(struct list_head *l)
 /* Do the magic of a task switch */
 void inner_task_switch(union task_union *new)
 {
+
   page_table_entry *new_DIR = get_DIR(&new->task);
 
   /* Update TSS and MSR to make it point to the new stack */
@@ -287,6 +287,7 @@ void inner_task_switch(union task_union *new)
   set_cr3(new_DIR);
 
   switch_stack(&current()->register_esp, new->task.register_esp);
+
 }
 
 

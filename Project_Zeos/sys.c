@@ -155,8 +155,6 @@ int sys_fork(void)
   int pages = TOTAL_PAGES-1;
   while (parent_PT[pages].bits.present == 1) {
     set_ss_pag(process_PT, pages, get_frame(parent_PT, pages));
-    //copy_data((void*)(i<<12), (void*)((i)<<12), PAGE_SIZE);
-    //del_ss_pag(parent_PT, i);
     --pages;
   }
 
@@ -205,33 +203,38 @@ int sys_write(int fd, char *buffer, int nbytes) {
     else {
       bytes_left = nbytes;
       //puntero a la posición donde empezar a leer
-      int *pos_write = current()->tc_array[fd].tfa_entry->buffer_write;
+      //char **pos_write = (char **)&current()->tc_array[fd].tfa_entry->buffer_write;
+      char **pos_write = &current()->tc_array[fd].tfa_entry->buffer_write;
       int *bytes = &(current()->tc_array[fd].tfa_entry->bytes);
       int bytes_escritos= 0;
       int sem_id_r = current()->tc_array[fd].tfa_entry->sem_id_r;
       int sem_id_w = current()->tc_array[fd].tfa_entry->sem_id_w;
       //bytes que vamos a escribir
 
-      while (bytes_left > bytes_escritos){
+      while (bytes_left > 0){
+
         unblock_waiters(sem_id_r);
+
         if(*bytes + bytes_left <= PAGE_SIZE) {
          //copy_from_user(buffer,pos_write,bytes_left);
-         copy_data(buffer,pos_write,bytes_left);
+         copy_data(buffer,*pos_write,bytes_left);
          bytes_escritos += bytes_left;
-         bytes_left -= bytes_left;
          buffer += bytes_left;
-         pos_write += (bytes_left % PAGE_SIZE);
-         current()->tc_array[fd].tfa_entry->bytes = bytes_escritos;
+         *pos_write = *pos_write + (bytes_left % PAGE_SIZE);
+         //*pos_write += (bytes_left % PAGE_SIZE);
+         *bytes = bytes_escritos;
+         bytes_left -= bytes_left;
         }
         else {
          int restant = PAGE_SIZE - *bytes;
          //copy_from_user(buffer,pos_write,restant);
-         copy_data(buffer,pos_write,restant);
+         copy_data(buffer,*pos_write,restant);
          bytes_escritos += restant;
-         bytes_left -= restant;
          buffer += restant;
-         pos_write += (restant % PAGE_SIZE);
-         current()->tc_array[fd].tfa_entry->bytes = bytes_escritos;
+         //*pos_write += (restant % PAGE_SIZE);
+         *pos_write = *pos_write + (restant % PAGE_SIZE);
+         *bytes = bytes_escritos;
+          bytes_left -= restant;
          //aun quedan bytes por escribir, se bloquea hasta que el lector lea y consuma bytes suficiente
          sem_wait(sem_id_w);
        }
@@ -322,10 +325,9 @@ int sys_pipe(int *pd)
       int i = TOTAL_PAGES-1;
       while (current_PT[i].bits.present == 1) --i; // i sera la pagina que estará libre
       current_PT[i].bits.user = 0; // solo accesible en privilegios nivel 0
-
       set_ss_pag(current_PT,i,new_ph_pag);
       set_cr3(get_DIR(current()));
-
+      tfa_array[tfae].id_ph_page = i;
       tfa_array[tfae].buffer_read = i*PAGE_SIZE;
       tfa_array[tfae].buffer_write = i*PAGE_SIZE;
       tfa_array[tfae].bytes = 0;
@@ -369,38 +371,39 @@ int sys_read(int fd, void *buf, size_t size)
     return -EFAULT;
 
   //puntero a la posición donde empezar a leer
-  int *pos_read = current()->tc_array[fd].tfa_entry->buffer_read;
+  //char **pos_read = (char **)&current()->tc_array[fd].tfa_entry->buffer_read;
+  char **pos_read = &current()->tc_array[fd].tfa_entry->buffer_read;
   // #bits que quedan para leer
-  int total_bytes = current()->tc_array[fd].tfa_entry->bytes;
+  int *total_bytes = &(current()->tc_array[fd].tfa_entry->bytes);
   int bytes_left = size;
 
   int sem_id_w = current()->tc_array[fd].tfa_entry->sem_id_w;
   int sem_id_r = current()->tc_array[fd].tfa_entry->sem_id_r;
 
   while(bytes_left > 0) {
-    if (total_bytes >= bytes_left) {
-      //copy_from_user(pos_read,buf,bytes_left);
-      copy_data(pos_read,buf,bytes_left);
-      bytes_left -= bytes_left;
-      total_bytes -= bytes_left;
-      pos_read += (bytes_left % PAGE_SIZE);
-      buf += bytes_left;
-      current()->tc_array[fd].tfa_entry->bytes = total_bytes;
+    if (*total_bytes >= bytes_left ) {
+     // copy_from_user(pos_read,buf,bytes_left);
+      copy_data(*pos_read,buf,bytes_left);
+      *pos_read = *pos_read + (bytes_left % PAGE_SIZE);
+      buf = buf + bytes_left;
+      *total_bytes -= bytes_left;
+      bytes_left = 0;
+
       unblock_waiters(sem_id_w);
     }
-    else if (total_bytes < bytes_left && total_bytes != 0) {
+    else if (*total_bytes < bytes_left && *total_bytes != 0) {
       //copy_from_user(pos_read,buf,total_bytes);
-      copy_data(pos_read,buf,total_bytes);
-      bytes_left -= total_bytes;
-      pos_read += (total_bytes % PAGE_SIZE);
-      buf += total_bytes;
-      total_bytes = 0;
-      current()->tc_array[fd].tfa_entry->bytes = total_bytes;
+      copy_data(*pos_read,buf,*total_bytes);
+      bytes_left -= *total_bytes;
+      *pos_read = *pos_read + (*total_bytes % PAGE_SIZE);
+      buf += *total_bytes;
+      *total_bytes = 0;
       unblock_waiters(sem_id_w);
     }
-    else if (total_bytes == 0 && bytes_left > 0) {
+    else if (*total_bytes == 0 && bytes_left > 0) {
       //si el numero de bytes de la entrada de la tfa apuntada por el canal del proceso es 0
       sem_wait(sem_id_r);
+
     }
   }
 

@@ -3,6 +3,7 @@
 
 
 int pid;
+extern int zeos_ticks;
 
 int __attribute__ ((__section__(".text.main")))
   main(void)
@@ -13,13 +14,7 @@ int __attribute__ ((__section__(".text.main")))
   //perror();
   //write(1,"hola",-1);
   //perror();
-  //int time = 0;
-  //char buff[4];
 
-	//time = gettime();
-	//itoa(time,budff);
-	//write(1,buff,strlen(buff));
-  //
   //itoa(pid,buff);
   //write(1,buff,strlen(buff));
 
@@ -43,5 +38,7 @@ int __attribute__ ((__section__(".text.main")))
       }
     }
   }*/
-  while(1) { }
+  while(1) {
+
+  }
 }

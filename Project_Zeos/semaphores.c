@@ -76,10 +76,9 @@ int free_sem(int n_sem) {
 }
 
 int unblock_waiters(int n_sem) {
-  if (n_sem < 0 || n_sem > NR_SEM) return -1;
+  if (n_sem < 0 || n_sem >= NR_SEM) return -1;
   if (sem[n_sem].count == NULL) return -1;
-  struct sem_t s = sem[n_sem];
-  while (!list_empty(&s.blocked)) {
+  while (!list_empty(&sem[n_sem].blocked)) {
       sem_signal(n_sem);
   }
   return 0;
